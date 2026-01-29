@@ -244,7 +244,8 @@
 
   <script>
     // ***********************************************
-    // REPLACE THIS WITH YOUR DEPLOYED WEB APP URL
+    // 1. นำ URL จาก Google Apps Script มาใส่ตรงนี้ (ในเครื่องหมายขีดเดียว)
+    // ต้องลงท้ายด้วย /exec
     // ***********************************************
     const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbzQEL_IH0JP6oCVB76RjldKmajOS92oXb1s8UCXYvvGZLWig83CPYre5IVBaiXan83A/exec'; 
 
@@ -254,27 +255,62 @@
 
     async function init() {
         showLoading(true);
+
+        // เช็คว่าใส่ URL หรือยัง
+        if (!GAS_API_URL || GAS_API_URL.length < 10) {
+            alert("แจ้งเตือน: คุณยังไม่ได้ใส่ลิงก์ Google Apps Script URL ในโค้ด!");
+            showLoading(false);
+            return;
+        }
+
+        // ตั้งเวลาตัดระบบถ้าโหลดนานเกิน 8 วินาที
+        const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error("การเชื่อมต่อ Google นานผิดปกติ (Timeout)")), 8000)
+        );
+
         try {
-            // Call "read" action
-            const response = await fetch(`${GAS_API_URL}?action=read`);
+            // เรียกข้อมูล พร้อมระบบตัดเวลา
+            const response = await Promise.race([
+                fetch(`${GAS_API_URL}?action=read`),
+                timeoutPromise
+            ]);
+
+            if (!response.ok) throw new Error(`Server Error: ${response.status}`);
+            
             const json = await response.json();
-            allData = json;
+            
+            // เช็คว่า Google ส่ง Error กลับมาไหม
+            if(json.status === 'error') throw new Error(json.message);
+
+            allData = Array.isArray(json) ? json : (json.data || []);
+            
+            // อัปเดตหน้าจอ
             updateDashboard();
             updateOrdersTable();
             updateTravelsTable();
+
         } catch (error) {
             console.error(error);
-            alert('ไม่สามารถโหลดข้อมูลได้');
+            // แสดงข้อความแจ้งเตือนที่ชัดเจน
+            alert(`โหลดข้อมูลไม่สำเร็จ: ${error.message}\n\n1. เช็คว่า Deploy เป็น "Anyone" หรือยัง\n2. เช็คว่าชื่อ Sheet เป็น "Data" หรือยัง`);
         } finally {
+            // ปิดตัวหมุนโหลดเสมอ ไม่ว่าจะ error หรือไม่
             showLoading(false);
         }
     }
 
+    // --- ฟังก์ชันช่วยเหลือต่างๆ (เหมือนเดิม) ---
     function showLoading(show) {
-        document.getElementById('loading-overlay').classList.toggle('hidden', !show);
+        const overlay = document.getElementById('loading-overlay');
+        if(show) {
+            overlay.classList.remove('hidden');
+            overlay.classList.add('flex');
+        } else {
+            overlay.classList.add('hidden');
+            overlay.classList.remove('flex');
+        }
     }
 
-    // --- Helper: Convert File to Base64 ---
     const fileToBase64 = file => new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.readAsDataURL(file);
@@ -282,7 +318,6 @@
         reader.onerror = error => reject(error);
     });
 
-    // --- Create/Update Logic ---
     async function submitData(payload) {
         showLoading(true);
         try {
@@ -290,81 +325,67 @@
             const action = isUpdate ? 'update' : 'create';
             if (isUpdate) payload.__backendId = editTarget;
 
-            // Send POST request
+            // ใช้ no-cors เพื่อเลี่ยงปัญหาเบื้องต้น (แต่จะไม่เห็น response)
+            // หรือใช้ standard fetch
             const response = await fetch(GAS_API_URL, {
                 method: 'POST',
                 body: JSON.stringify({ action: action, payload: payload })
             });
+            
             const result = await response.json();
             
             if(result.status === 'success') {
                 alert('บันทึกข้อมูลสำเร็จ');
-                // Refresh Data
                 await init();
                 showPage('dashboard');
                 document.getElementById('form-order').reset();
                 document.getElementById('form-travel').reset();
                 editTarget = null;
             } else {
-                alert('เกิดข้อผิดพลาด: ' + result.message);
+                alert('เกิดข้อผิดพลาด: ' + (result.message || 'Unknown Error'));
             }
         } catch (e) {
             console.error(e);
-            alert('เชื่อมต่อเซิร์ฟเวอร์ไม่ได้');
+            alert('บันทึกไม่สำเร็จ (Network Error) ลองเช็ค Console ดูรายละเอียด');
         } finally {
             showLoading(false);
         }
     }
 
-    // Handle Order Submit
+    // ฟังก์ชันจัดการฟอร์ม
     async function handleOrderSubmit(e) {
         e.preventDefault();
         const fileInput = document.getElementById('order-file');
-        let fileBase64 = null;
-        let fileType = null;
-        let fileName = null;
-
+        let fileBase64 = null, fileType = null, fileName = null;
         if (fileInput.files.length > 0) {
             const file = fileInput.files[0];
-            if(file.size > 5 * 1024 * 1024) { // 5MB Limit
-                alert('ไฟล์ใหญ่เกินไป (จำกัด 5MB)');
-                return;
-            }
+            if(file.size > 5 * 1024 * 1024) { alert('ไฟล์ใหญ่เกิน 5MB'); return; }
             fileBase64 = await fileToBase64(file);
             fileType = file.type;
             fileName = file.name;
         }
-
-        const payload = {
+        submitData({
             type: 'order',
             order_number: document.getElementById('order-number').value,
             subject: document.getElementById('order-subject').value,
             issue_date: document.getElementById('order-date').value,
             order_type: document.getElementById('order-type').value,
             issuing_agency: document.getElementById('order-agency').value,
-            file_base64: fileBase64,
-            file_type: fileType,
-            file_name: fileName
-        };
-        submitData(payload);
+            file_base64: fileBase64, file_type: fileType, file_name: fileName
+        });
     }
 
-    // Handle Travel Submit
     async function handleTravelSubmit(e) {
         e.preventDefault();
         const fileInput = document.getElementById('travel-file');
-        let fileBase64 = null;
-        let fileType = null;
-        let fileName = null;
-
+        let fileBase64 = null, fileType = null, fileName = null;
         if (fileInput.files.length > 0) {
             const file = fileInput.files[0];
             fileBase64 = await fileToBase64(file);
             fileType = file.type;
             fileName = file.name;
         }
-
-        const payload = {
+        submitData({
             type: 'travel',
             order_number: document.getElementById('travel-order-number').value,
             traveler_name: document.getElementById('travel-name').value,
@@ -372,22 +393,14 @@
             start_date: document.getElementById('travel-start').value,
             end_date: document.getElementById('travel-end').value,
             purpose: document.getElementById('travel-purpose').value,
-            file_base64: fileBase64,
-            file_type: fileType,
-            file_name: fileName
-        };
-        submitData(payload);
+            file_base64: fileBase64, file_type: fileType, file_name: fileName
+        });
     }
 
-    // --- Delete Logic ---
+    // ฟังก์ชันจัดการ UI และ Table
     function deleteOrder(id) { deleteTargetId = id; openDeleteModal(); }
     function deleteTravel(id) { deleteTargetId = id; openDeleteModal(); }
-    
-    function openDeleteModal() {
-        const modal = document.getElementById('delete-modal');
-        modal.classList.remove('hidden');
-        modal.classList.add('flex');
-    }
+    function openDeleteModal() { document.getElementById('delete-modal').classList.remove('hidden'); document.getElementById('delete-modal').classList.add('flex'); }
 
     async function confirmDelete() {
         if (!deleteTargetId) return;
@@ -399,15 +412,11 @@
             });
             document.getElementById('delete-modal').classList.add('hidden');
             document.getElementById('delete-modal').classList.remove('flex');
-            await init(); // Refresh
-        } catch (e) {
-            alert('ลบข้อมูลไม่สำเร็จ');
-        } finally {
-            showLoading(false);
-        }
+            await init();
+        } catch (e) { alert('ลบข้อมูลไม่สำเร็จ'); } 
+        finally { showLoading(false); }
     }
 
-    // --- Edit Logic (Populate Form) ---
     function editOrder(id) {
         const data = allData.find(d => d.__backendId == id);
         if(!data) return;
@@ -415,7 +424,7 @@
         showPage('add');
         setAddTab('order');
         document.getElementById('order-number').value = data.order_number;
-        document.getElementById('order-subject').value = formatDateForInput(data.issue_date); // Fix Date
+        document.getElementById('order-subject').value = data.subject;
         document.getElementById('order-date').value = formatDateForInput(data.issue_date);
         document.getElementById('order-type').value = data.order_type;
         document.getElementById('order-agency').value = data.issuing_agency;
@@ -435,7 +444,6 @@
         document.getElementById('travel-purpose').value = data.purpose;
     }
 
-    // --- UI Helpers ---
     function showPage(page) {
         document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
         document.getElementById(`page-${page}`).classList.remove('hidden');
@@ -449,19 +457,14 @@
         const formTravel = document.getElementById('form-travel');
         const tabOrder = document.getElementById('tab-order');
         const tabTravel = document.getElementById('tab-travel');
-
         if(tab === 'order') {
             formOrder.classList.remove('hidden'); formTravel.classList.add('hidden');
-            tabOrder.classList.add('border-b-2', 'border-blue-600', 'text-blue-600', 'bg-blue-50');
-            tabOrder.classList.remove('text-gray-500');
-            tabTravel.classList.remove('border-b-2', 'border-green-600', 'text-green-600', 'bg-green-50');
-            tabTravel.classList.add('text-gray-500');
+            tabOrder.className = 'flex-1 px-6 py-4 font-medium border-b-2 border-blue-600 text-blue-600 bg-blue-50';
+            tabTravel.className = 'flex-1 px-6 py-4 font-medium text-gray-500 hover:bg-gray-50';
         } else {
             formTravel.classList.remove('hidden'); formOrder.classList.add('hidden');
-            tabTravel.classList.add('border-b-2', 'border-green-600', 'text-green-600', 'bg-green-50');
-            tabTravel.classList.remove('text-gray-500');
-            tabOrder.classList.remove('border-b-2', 'border-blue-600', 'text-blue-600', 'bg-blue-50');
-            tabOrder.classList.add('text-gray-500');
+            tabTravel.className = 'flex-1 px-6 py-4 font-medium border-b-2 border-green-600 text-green-600 bg-green-50';
+            tabOrder.className = 'flex-1 px-6 py-4 font-medium text-gray-500 hover:bg-gray-50';
         }
     }
 
@@ -474,20 +477,20 @@
     function formatDateForInput(dateStr) {
         if(!dateStr) return '';
         const d = new Date(dateStr);
-        return d.toISOString().split('T')[0];
+        // แก้ไข Timezone Offset ให้วันที่ถูกต้องใน Input Date
+        const offset = d.getTimezoneOffset() * 60000;
+        return new Date(d.getTime() - offset).toISOString().split('T')[0];
     }
 
     function viewOrder(id) {
         const d = allData.find(x => x.__backendId == id);
         if(!d) return;
-        const fileHtml = d.file_url ? `<a href="${d.file_url}" target="_blank" class="text-blue-600 underline flex items-center gap-1"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg> ${d.file_name}</a>` : '-';
-        
+        const fileHtml = d.file_url ? `<a href="${d.file_url}" target="_blank" class="text-blue-600 underline">เปิดไฟล์แนบ</a>` : '-';
         document.getElementById('modal-content').innerHTML = `
             <p><strong>เลขที่:</strong> ${d.order_number}</p>
             <p><strong>เรื่อง:</strong> ${d.subject}</p>
             <p><strong>วันที่:</strong> ${formatDate(d.issue_date)}</p>
-            <p><strong>ประเภท:</strong> ${d.order_type}</p>
-            <p><strong>ไฟล์แนบ:</strong> ${fileHtml}</p>
+            <p><strong>ไฟล์:</strong> ${fileHtml}</p>
         `;
         document.getElementById('view-modal').classList.remove('hidden');
         document.getElementById('view-modal').classList.add('flex');
@@ -496,46 +499,43 @@
     function viewTravel(id) {
         const d = allData.find(x => x.__backendId == id);
         if(!d) return;
-        const fileHtml = d.file_url ? `<a href="${d.file_url}" target="_blank" class="text-green-600 underline flex items-center gap-1"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg> ${d.file_name}</a>` : '-';
-
+        const fileHtml = d.file_url ? `<a href="${d.file_url}" target="_blank" class="text-green-600 underline">เปิดไฟล์แนบ</a>` : '-';
         document.getElementById('modal-content').innerHTML = `
-            <p><strong>ผู้ไปราชการ:</strong> ${d.traveler_name}</p>
+            <p><strong>ผู้ไป:</strong> ${d.traveler_name}</p>
             <p><strong>สถานที่:</strong> ${d.destination}</p>
             <p><strong>วันที่:</strong> ${formatDate(d.start_date)} - ${formatDate(d.end_date)}</p>
-            <p><strong>วัตถุประสงค์:</strong> ${d.purpose}</p>
-            <p><strong>ไฟล์แนบ:</strong> ${fileHtml}</p>
+            <p><strong>ไฟล์:</strong> ${fileHtml}</p>
         `;
         document.getElementById('view-modal').classList.remove('hidden');
         document.getElementById('view-modal').classList.add('flex');
     }
 
-    // --- Render Tables & Dashboard ---
     function updateDashboard() {
         document.getElementById('stat-orders').innerText = allData.filter(x=>x.type=='order').length;
         document.getElementById('stat-travels').innerText = allData.filter(x=>x.type=='travel').length;
-        // Simple Recent logic
+        
+        // ข้อมูลเดือนนี้
+        const now = new Date();
+        const thisMonth = now.getMonth();
+        const thisYear = now.getFullYear();
+        
+        const ordersMonth = allData.filter(x => x.type=='order' && new Date(x.issue_date).getMonth() === thisMonth && new Date(x.issue_date).getFullYear() === thisYear).length;
+        const travelsMonth = allData.filter(x => x.type=='travel' && new Date(x.start_date).getMonth() === thisMonth && new Date(x.start_date).getFullYear() === thisYear).length;
+
+        document.getElementById('stat-orders-month').innerText = ordersMonth;
+        document.getElementById('stat-travels-month').innerText = travelsMonth;
+
         const orders = allData.filter(x=>x.type=='order').slice(-5).reverse();
-        document.getElementById('recent-orders').innerHTML = orders.map(o => `
-            <div class="p-4 hover:bg-gray-50 cursor-pointer" onclick="viewOrder('${o.__backendId}')">
-                <p class="font-medium text-blue-900">${o.order_number}</p>
-                <p class="text-sm text-gray-500 truncate">${o.subject}</p>
-            </div>
-        `).join('');
+        document.getElementById('recent-orders').innerHTML = orders.map(o => `<div class="p-3 border-b text-sm cursor-pointer hover:bg-gray-50" onclick="viewOrder('${o.__backendId}')">${o.order_number} ${o.subject}</div>`).join('') || '<div class="p-4 text-center text-gray-400">ไม่มีข้อมูล</div>';
         
         const travels = allData.filter(x=>x.type=='travel').slice(-5).reverse();
-        document.getElementById('recent-travels').innerHTML = travels.map(t => `
-            <div class="p-4 hover:bg-gray-50 cursor-pointer" onclick="viewTravel('${t.__backendId}')">
-                <p class="font-medium text-green-900">${t.traveler_name}</p>
-                <p class="text-sm text-gray-500">${t.destination}</p>
-            </div>
-        `).join('');
+        document.getElementById('recent-travels').innerHTML = travels.map(t => `<div class="p-3 border-b text-sm cursor-pointer hover:bg-gray-50" onclick="viewTravel('${t.__backendId}')">${t.traveler_name} ไป ${t.destination}</div>`).join('') || '<div class="p-4 text-center text-gray-400">ไม่มีข้อมูล</div>';
     }
 
     function updateOrdersTable() {
-        const tbody = document.getElementById('orders-table-body');
         const list = allData.filter(x => x.type === 'order');
-        tbody.innerHTML = list.map(o => `
-            <tr class="table-row border-b">
+        document.getElementById('orders-table-body').innerHTML = list.length ? list.map(o => `
+            <tr class="hover:bg-gray-50 border-b">
                 <td class="px-4 py-3">${o.order_number}</td>
                 <td class="px-4 py-3 truncate max-w-xs">${o.subject}</td>
                 <td class="px-4 py-3">${formatDate(o.issue_date)}</td>
@@ -545,15 +545,13 @@
                     <button onclick="editOrder('${o.__backendId}')" class="text-yellow-600">แก้ไข</button>
                     <button onclick="deleteOrder('${o.__backendId}')" class="text-red-600">ลบ</button>
                 </td>
-            </tr>
-        `).join('');
+            </tr>`).join('') : '<tr><td colspan="5" class="text-center py-4">ไม่พบข้อมูล</td></tr>';
     }
 
     function updateTravelsTable() {
-        const tbody = document.getElementById('travels-table-body');
         const list = allData.filter(x => x.type === 'travel');
-        tbody.innerHTML = list.map(t => `
-            <tr class="table-row border-b">
+        document.getElementById('travels-table-body').innerHTML = list.length ? list.map(t => `
+            <tr class="hover:bg-gray-50 border-b">
                 <td class="px-4 py-3">${t.order_number}</td>
                 <td class="px-4 py-3">${t.traveler_name}</td>
                 <td class="px-4 py-3 truncate max-w-xs">${t.destination}</td>
@@ -563,20 +561,16 @@
                     <button onclick="editTravel('${t.__backendId}')" class="text-yellow-600">แก้ไข</button>
                     <button onclick="deleteTravel('${t.__backendId}')" class="text-red-600">ลบ</button>
                 </td>
-            </tr>
-        `).join('');
+            </tr>`).join('') : '<tr><td colspan="5" class="text-center py-4">ไม่พบข้อมูล</td></tr>';
     }
     
-    // Search Function
     function performSearch() {
         const keyword = document.getElementById('search-keyword').value.toLowerCase();
         const type = document.getElementById('search-type').value;
         const results = allData.filter(item => {
             if(type !== 'all' && item.type !== type) return false;
-            const str = Object.values(item).join(' ').toLowerCase();
-            return str.includes(keyword);
+            return Object.values(item).join(' ').toLowerCase().includes(keyword);
         });
-        
         document.getElementById('search-count').innerText = `${results.length} รายการ`;
         document.getElementById('search-results').innerHTML = results.map(item => `
             <div class="p-4 border-b hover:bg-gray-50 cursor-pointer" onclick="${item.type==='order' ? `viewOrder('${item.__backendId}')` : `viewTravel('${item.__backendId}')`}">
@@ -586,9 +580,8 @@
         `).join('');
     }
 
-    // Initialize
+    // เริ่มทำงาน
     init();
-
   </script>
  </body>
 </html>

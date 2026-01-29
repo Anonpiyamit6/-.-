@@ -1,372 +1,842 @@
 <!doctype html>
 <html lang="th" class="h-full">
- <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ระบบจัดเก็บคำสั่งและงานไปราชการ</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet">
-  <style>
-    body { box-sizing: border-box; }
-    * { font-family: 'Sarabun', sans-serif; }
-    .sidebar-item { transition: all 0.2s ease; }
-    .sidebar-item:hover { background: rgba(255,255,255,0.1); }
-    .sidebar-item.active { background: rgba(255,255,255,0.2); border-left: 4px solid #fff; }
-    .table-row:hover { background: #f8fafc; }
-    .btn-primary:hover { transform: translateY(-1px); }
-    
-    /* Loading Overlay */
-    #loading-overlay {
-        position: fixed; inset: 0; background: rgba(255,255,255,0.95); 
-        z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center;
-    }
-  </style>
- </head>
- <body class="h-full bg-gray-100">
-  
-  <!-- Loading Screen -->
-  <div id="loading-overlay">
-      <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-600 mb-4"></div>
-      <p id="loading-text" class="text-blue-800 font-semibold animate-pulse">กำลังเชื่อมต่อฐานข้อมูล...</p>
-      <button onclick="document.getElementById('loading-overlay').style.display='none'" class="mt-8 text-gray-400 text-sm underline hover:text-gray-600">กดตรงนี้เพื่อปิดหน้าโหลด (หากค้างนาน)</button>
-  </div>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบบริหารจัดการคำสั่งและงานราชการ</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Phosphor Icons (ไอคอนสวยๆ) -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
 
-  <div id="app" class="h-full flex overflow-hidden">
-   <!-- Sidebar -->
-   <aside id="sidebar" class="w-64 bg-gradient-to-b from-blue-800 to-blue-900 text-white flex-shrink-0 flex flex-col hidden md:flex">
-    <div class="p-4 border-b border-blue-700">
-     <div class="flex items-center gap-3">
-      <div class="w-10 h-10 bg-white rounded-lg flex items-center justify-center">
-       <svg class="w-6 h-6 text-blue-800" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
-      </div>
-      <div>
-       <h1 class="font-bold text-sm leading-tight">ระบบจัดเก็บคำสั่ง</h1>
-       <p class="text-xs text-blue-200">กลุ่มงานบริหารงานบุคคล</p>
-      </div>
-     </div>
-    </div>
-    <nav class="flex-1 py-4 overflow-y-auto">
-     <ul class="space-y-1 px-2">
-      <li><button onclick="showPage('dashboard')" class="sidebar-item active w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left" data-page="dashboard">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg><span class="font-medium">หน้าแรก</span> </button></li>
-      <li><button onclick="showPage('orders')" class="sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left" data-page="orders">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg><span class="font-medium">คำสั่งกลุ่มงาน</span> </button></li>
-      <li><button onclick="showPage('travels')" class="sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left" data-page="travels">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /> <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg><span class="font-medium">งานไปราชการ</span> </button></li>
-      <li><button onclick="showPage('add')" class="sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left" data-page="add">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg><span class="font-medium">เพิ่มข้อมูล</span> </button></li>
-      <li><button onclick="showPage('search')" class="sidebar-item w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left" data-page="search">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg><span class="font-medium">ค้นหา / รายงาน</span> </button></li>
-     </ul>
-    </nav>
-   </aside>
-   
-   <!-- Main Content -->
-   <main class="flex-1 overflow-y-auto w-full">
-    <div class="md:hidden bg-blue-900 text-white p-4 flex justify-between items-center sticky top-0 z-40 shadow-md">
-        <span class="font-bold">ระบบจัดเก็บคำสั่ง</span>
-        <button onclick="document.getElementById('sidebar').classList.toggle('hidden'); document.getElementById('sidebar').classList.toggle('absolute'); document.getElementById('sidebar').classList.toggle('z-50'); document.getElementById('sidebar').classList.toggle('h-full');" class="p-1">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
-        </button>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Sarabun', 'sans-serif'] },
+                    colors: {
+                        brand: {
+                            50: '#eef2ff', 100: '#e0e7ff', 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca', 800: '#3730a3', 900: '#312e81',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+        }
+        .sidebar-link { transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
+        .sidebar-link:hover { background-color: rgba(255,255,255,0.1); transform: translateX(4px); }
+        .sidebar-link.active { 
+            background: linear-gradient(90deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 100%);
+            border-left: 4px solid #4f46e5; /* brand-600 */
+            border-left-color: #a5b4fc;
+        }
+    </style>
+</head>
+<body class="h-full bg-slate-50 text-slate-800">
+
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-white/90 backdrop-blur-sm transition-opacity duration-300">
+        <div class="relative">
+            <div class="w-16 h-16 border-4 border-brand-200 border-t-brand-600 rounded-full animate-spin"></div>
+            <div class="absolute inset-0 flex items-center justify-center">
+                <i class="ph-fill ph-files text-brand-600 text-xl"></i>
+            </div>
+        </div>
+        <p id="loading-text" class="mt-4 text-brand-800 font-semibold animate-pulse">กำลังเชื่อมต่อฐานข้อมูล...</p>
+        <button onclick="document.getElementById('loading-overlay').style.display='none'" class="mt-8 text-xs text-slate-400 hover:text-slate-600 underline">ปิดหน้าต่างนี้ (หากรอนานเกินไป)</button>
     </div>
 
-    <!-- Dashboard Page -->
-    <div id="page-dashboard" class="page p-6">
-     <div class="mb-6"><h2 class="text-2xl font-bold text-gray-800">แดชบอร์ด</h2></div>
-     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-      <div class="card-stat bg-white rounded-xl shadow-md p-6 border-l-4 border-blue-500">
-       <div><p class="text-gray-500 text-sm mb-1">คำสั่งทั้งหมด</p><p id="stat-orders" class="text-3xl font-bold text-gray-800">0</p></div>
-      </div>
-      <div class="card-stat bg-white rounded-xl shadow-md p-6 border-l-4 border-green-500">
-       <div><p class="text-gray-500 text-sm mb-1">งานไปราชการ</p><p id="stat-travels" class="text-3xl font-bold text-gray-800">0</p></div>
-      </div>
-     </div>
-     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <div class="bg-white rounded-xl shadow-md p-4"><h3 class="font-semibold mb-4">คำสั่งล่าสุด</h3><div id="recent-orders" class="divide-y max-h-80 overflow-y-auto"></div></div>
-      <div class="bg-white rounded-xl shadow-md p-4"><h3 class="font-semibold mb-4">งานไปราชการล่าสุด</h3><div id="recent-travels" class="divide-y max-h-80 overflow-y-auto"></div></div>
-     </div>
+    <div id="app" class="h-full flex overflow-hidden">
+        
+        <!-- Sidebar -->
+        <aside id="sidebar" class="hidden md:flex flex-col w-72 bg-slate-900 text-white shadow-2xl z-20 transition-all duration-300">
+            <!-- Logo Area -->
+            <div class="h-20 flex items-center gap-3 px-6 border-b border-slate-800 bg-slate-950">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center shadow-lg shadow-brand-500/30">
+                    <i class="ph ph-stack text-2xl text-white"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-base tracking-wide text-slate-100">Smart Archive</h1>
+                    <p class="text-[10px] text-slate-400 uppercase tracking-wider">งานบริหารบุคคล</p>
+                </div>
+            </div>
+
+            <!-- Menu -->
+            <nav class="flex-1 py-6 px-3 space-y-1 overflow-y-auto">
+                <p class="px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">เมนูหลัก</p>
+                
+                <button onclick="showPage('dashboard')" class="sidebar-link w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left text-slate-300 hover:text-white group active" data-page="dashboard">
+                    <i class="ph ph-squares-four text-xl group-hover:text-brand-400"></i>
+                    <span class="font-medium">แดชบอร์ด</span>
+                </button>
+
+                <button onclick="showPage('orders')" class="sidebar-link w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left text-slate-300 hover:text-white group" data-page="orders">
+                    <i class="ph ph-file-text text-xl group-hover:text-brand-400"></i>
+                    <span class="font-medium">ทะเบียนคำสั่ง</span>
+                </button>
+
+                <button onclick="showPage('travels')" class="sidebar-link w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left text-slate-300 hover:text-white group" data-page="travels">
+                    <i class="ph ph-airplane-tilt text-xl group-hover:text-brand-400"></i>
+                    <span class="font-medium">ทะเบียนไปราชการ</span>
+                </button>
+
+                <p class="px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider mt-6 mb-2">จัดการข้อมูล</p>
+
+                <button onclick="showPage('add')" class="sidebar-link w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left text-slate-300 hover:text-white group" data-page="add">
+                    <i class="ph ph-plus-circle text-xl group-hover:text-brand-400"></i>
+                    <span class="font-medium">เพิ่มข้อมูลใหม่</span>
+                </button>
+
+                <button onclick="showPage('search')" class="sidebar-link w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left text-slate-300 hover:text-white group" data-page="search">
+                    <i class="ph ph-magnifying-glass text-xl group-hover:text-brand-400"></i>
+                    <span class="font-medium">ค้นหาและรายงาน</span>
+                </button>
+            </nav>
+
+            <!-- User Profile -->
+            <div class="p-4 border-t border-slate-800 bg-slate-950/50">
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-full bg-slate-700 flex items-center justify-center text-slate-300">
+                        <i class="ph-fill ph-user"></i>
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-white">ผู้ดูแลระบบ</p>
+                        <p class="text-xs text-slate-400">Admin Status</p>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 flex flex-col h-full overflow-hidden bg-slate-50 relative">
+            
+            <!-- Mobile Header -->
+            <header class="md:hidden h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 shadow-sm z-10">
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 rounded bg-brand-600 flex items-center justify-center text-white"><i class="ph-fill ph-stack"></i></div>
+                    <span class="font-bold text-slate-700">Smart Archive</span>
+                </div>
+                <button onclick="document.getElementById('sidebar').classList.toggle('hidden'); document.getElementById('sidebar').classList.toggle('absolute'); document.getElementById('sidebar').classList.toggle('h-full');" class="p-2 text-slate-600 rounded hover:bg-slate-100">
+                    <i class="ph ph-list text-2xl"></i>
+                </button>
+            </header>
+
+            <!-- Scrollable Content -->
+            <div class="flex-1 overflow-y-auto p-4 md:p-8 scroll-smooth">
+                
+                <!-- Dashboard -->
+                <div id="page-dashboard" class="page max-w-7xl mx-auto">
+                    <div class="mb-8">
+                        <h2 class="text-2xl md:text-3xl font-bold text-slate-800">ภาพรวมระบบ</h2>
+                        <p class="text-slate-500 mt-1">สรุปข้อมูลคำสั่งและงานราชการประจำเดือน</p>
+                    </div>
+
+                    <!-- Stats Cards -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+                        <div class="bg-white rounded-2xl p-6 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.1)] hover:-translate-y-1 transition-transform border border-slate-100 relative overflow-hidden group">
+                            <div class="absolute right-0 top-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity"><i class="ph-fill ph-file-text text-6xl text-brand-600"></i></div>
+                            <p class="text-slate-500 text-sm font-medium">คำสั่งทั้งหมด</p>
+                            <h3 id="stat-orders" class="text-3xl font-bold text-slate-800 mt-2">0</h3>
+                            <div class="mt-4 flex items-center text-xs text-brand-600 font-medium bg-brand-50 w-fit px-2 py-1 rounded-full">
+                                <i class="ph-bold ph-trend-up mr-1"></i> สะสมรวม
+                            </div>
+                        </div>
+
+                        <div class="bg-white rounded-2xl p-6 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.1)] hover:-translate-y-1 transition-transform border border-slate-100 relative overflow-hidden group">
+                            <div class="absolute right-0 top-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity"><i class="ph-fill ph-airplane-tilt text-6xl text-emerald-600"></i></div>
+                            <p class="text-slate-500 text-sm font-medium">งานไปราชการ</p>
+                            <h3 id="stat-travels" class="text-3xl font-bold text-slate-800 mt-2">0</h3>
+                            <div class="mt-4 flex items-center text-xs text-emerald-600 font-medium bg-emerald-50 w-fit px-2 py-1 rounded-full">
+                                <i class="ph-bold ph-check-circle mr-1"></i> สะสมรวม
+                            </div>
+                        </div>
+
+                         <div class="bg-white rounded-2xl p-6 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.1)] hover:-translate-y-1 transition-transform border border-slate-100">
+                             <div class="flex items-center justify-between mb-4">
+                                 <div class="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center text-orange-600"><i class="ph-fill ph-calendar"></i></div>
+                                 <span class="text-xs font-semibold text-orange-600 bg-orange-50 px-2 py-1 rounded">เดือนนี้</span>
+                             </div>
+                             <p class="text-slate-500 text-sm">คำสั่งใหม่</p>
+                             <h3 id="stat-orders-month" class="text-2xl font-bold text-slate-800">0</h3>
+                         </div>
+
+                         <div class="bg-white rounded-2xl p-6 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.1)] hover:-translate-y-1 transition-transform border border-slate-100">
+                             <div class="flex items-center justify-between mb-4">
+                                 <div class="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center text-purple-600"><i class="ph-fill ph-map-pin"></i></div>
+                                 <span class="text-xs font-semibold text-purple-600 bg-purple-50 px-2 py-1 rounded">เดือนนี้</span>
+                             </div>
+                             <p class="text-slate-500 text-sm">ไปราชการ</p>
+                             <h3 id="stat-travels-month" class="text-2xl font-bold text-slate-800">0</h3>
+                         </div>
+                    </div>
+
+                    <!-- Recent Lists -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col h-full">
+                            <div class="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                                <h3 class="font-bold text-slate-700 flex items-center gap-2"><i class="ph-fill ph-clock-counter-clockwise text-brand-600"></i> คำสั่งล่าสุด</h3>
+                                <button onclick="showPage('orders')" class="text-xs text-brand-600 font-semibold hover:underline">ดูทั้งหมด</button>
+                            </div>
+                            <div id="recent-orders" class="divide-y divide-slate-100"></div>
+                        </div>
+
+                        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col h-full">
+                            <div class="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                                <h3 class="font-bold text-slate-700 flex items-center gap-2"><i class="ph-fill ph-suitcase text-emerald-600"></i> งานไปราชการล่าสุด</h3>
+                                <button onclick="showPage('travels')" class="text-xs text-emerald-600 font-semibold hover:underline">ดูทั้งหมด</button>
+                            </div>
+                            <div id="recent-travels" class="divide-y divide-slate-100"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Orders Page -->
+                <div id="page-orders" class="page hidden max-w-7xl mx-auto">
+                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+                        <div>
+                            <h2 class="text-2xl font-bold text-slate-800">ทะเบียนคำสั่ง</h2>
+                            <p class="text-slate-500 text-sm">จัดการและค้นหาคำสั่งภายในกลุ่มงาน</p>
+                        </div>
+                        <button onclick="showPage('add'); setAddTab('order')" class="bg-brand-600 hover:bg-brand-700 text-white px-5 py-2.5 rounded-xl shadow-lg shadow-brand-600/30 flex items-center gap-2 transition-all hover:scale-105 active:scale-95">
+                            <i class="ph-bold ph-plus"></i> เพิ่มคำสั่งใหม่
+                        </button>
+                    </div>
+
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                        <div class="p-4 border-b border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row gap-4">
+                            <div class="relative flex-1">
+                                <i class="ph ph-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                                <input type="text" id="search-orders" placeholder="ค้นหาเลขที่, เรื่อง..." class="w-full pl-10 pr-4 py-2 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition-all" oninput="filterOrders()">
+                            </div>
+                            <select id="filter-order-type" class="px-4 py-2 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 outline-none text-slate-600" onchange="filterOrders()">
+                                <option value="">ทุกประเภท</option>
+                                <option value="แต่งตั้ง">แต่งตั้ง</option>
+                                <option value="ย้าย">ย้าย</option>
+                                <option value="เลื่อนขั้น">เลื่อนขั้น</option>
+                                <option value="ลาศึกษา">ลาศึกษา</option>
+                                <option value="อื่นๆ">อื่นๆ</option>
+                            </select>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full">
+                                <thead class="bg-slate-50 text-slate-500 text-xs uppercase font-semibold tracking-wider">
+                                    <tr>
+                                        <th class="px-6 py-4 text-left">เลขที่คำสั่ง</th>
+                                        <th class="px-6 py-4 text-left">เรื่อง</th>
+                                        <th class="px-6 py-4 text-left">วันที่</th>
+                                        <th class="px-6 py-4 text-left">ประเภท</th>
+                                        <th class="px-6 py-4 text-center">จัดการ</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="orders-table-body" class="divide-y divide-slate-100 text-sm text-slate-700"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Travels Page -->
+                <div id="page-travels" class="page hidden max-w-7xl mx-auto">
+                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+                        <div>
+                            <h2 class="text-2xl font-bold text-slate-800">ทะเบียนไปราชการ</h2>
+                            <p class="text-slate-500 text-sm">บันทึกการเดินทางไปราชการของบุคลากร</p>
+                        </div>
+                        <button onclick="showPage('add'); setAddTab('travel')" class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl shadow-lg shadow-emerald-600/30 flex items-center gap-2 transition-all hover:scale-105 active:scale-95">
+                            <i class="ph-bold ph-plus"></i> เพิ่มงานไปราชการ
+                        </button>
+                    </div>
+
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                        <div class="p-4 border-b border-slate-100 bg-slate-50/50">
+                            <div class="relative">
+                                <i class="ph ph-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                                <input type="text" id="search-travels" placeholder="ค้นหาชื่อ, สถานที่, เลขที่คำสั่ง..." class="w-full pl-10 pr-4 py-2 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition-all" oninput="filterTravels()">
+                            </div>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full">
+                                <thead class="bg-slate-50 text-slate-500 text-xs uppercase font-semibold tracking-wider">
+                                    <tr>
+                                        <th class="px-6 py-4 text-left">คำสั่งที่</th>
+                                        <th class="px-6 py-4 text-left">ผู้ไปราชการ</th>
+                                        <th class="px-6 py-4 text-left">สถานที่</th>
+                                        <th class="px-6 py-4 text-left">ช่วงเวลา</th>
+                                        <th class="px-6 py-4 text-center">จัดการ</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="travels-table-body" class="divide-y divide-slate-100 text-sm text-slate-700"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Add Data Page -->
+                <div id="page-add" class="page hidden max-w-4xl mx-auto">
+                    <div class="text-center mb-8">
+                        <h2 class="text-2xl font-bold text-slate-800">เพิ่มข้อมูลใหม่</h2>
+                        <p class="text-slate-500">กรอกรายละเอียดเพื่อบันทึกลงฐานข้อมูล</p>
+                    </div>
+
+                    <div class="bg-white rounded-2xl shadow-lg border border-slate-100 overflow-hidden">
+                        <div class="flex border-b border-slate-100">
+                            <button id="tab-order" onclick="setAddTab('order')" class="flex-1 py-4 text-center font-semibold text-sm transition-all border-b-2 border-brand-600 text-brand-600 bg-brand-50/50">
+                                <i class="ph-bold ph-file-text mr-2"></i> บันทึกคำสั่ง
+                            </button>
+                            <button id="tab-travel" onclick="setAddTab('travel')" class="flex-1 py-4 text-center font-semibold text-sm transition-all border-b-2 border-transparent text-slate-500 hover:bg-slate-50">
+                                <i class="ph-bold ph-airplane-tilt mr-2"></i> บันทึกไปราชการ
+                            </button>
+                        </div>
+
+                        <!-- Form Order -->
+                        <form id="form-order" class="p-6 md:p-8 space-y-6" onsubmit="handleOrderSubmit(event)">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div class="space-y-2">
+                                    <label class="text-sm font-medium text-slate-700">เลขที่คำสั่ง <span class="text-red-500">*</span></label>
+                                    <input type="text" id="order-number" required class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition-all" placeholder="เช่น 123/2567">
+                                </div>
+                                <div class="space-y-2">
+                                    <label class="text-sm font-medium text-slate-700">วันที่ออกคำสั่ง <span class="text-red-500">*</span></label>
+                                    <input type="date" id="order-date" required class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-brand-500 outline-none transition-all text-slate-600">
+                                </div>
+                            </div>
+                            <div class="space-y-2">
+                                <label class="text-sm font-medium text-slate-700">เรื่อง <span class="text-red-500">*</span></label>
+                                <input type="text" id="order-subject" required class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-brand-500 outline-none transition-all" placeholder="ระบุชื่อเรื่อง...">
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div class="space-y-2">
+                                    <label class="text-sm font-medium text-slate-700">ประเภท</label>
+                                    <select id="order-type" class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-brand-500 outline-none transition-all bg-white">
+                                        <option value="แต่งตั้ง">แต่งตั้ง</option>
+                                        <option value="ย้าย">ย้าย</option>
+                                        <option value="เลื่อนขั้น">เลื่อนขั้น</option>
+                                        <option value="อื่นๆ">อื่นๆ</option>
+                                    </select>
+                                </div>
+                                <div class="space-y-2">
+                                    <label class="text-sm font-medium text-slate-700">หน่วยงานเจ้าของเรื่อง</label>
+                                    <input type="text" id="order-agency" class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-brand-500 outline-none transition-all" placeholder="เช่น กองการเจ้าหน้าที่">
+                                </div>
+                            </div>
+                            
+                            <div class="p-4 bg-slate-50 rounded-xl border border-slate-200 border-dashed">
+                                <label class="block text-sm font-medium text-slate-700 mb-2">ไฟล์แนบ (PDF)</label>
+                                <input type="file" id="order-file" accept="application/pdf" class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-brand-100 file:text-brand-700 hover:file:bg-brand-200 cursor-pointer">
+                                <p class="text-xs text-slate-400 mt-1">* ขนาดไม่เกิน 5MB</p>
+                            </div>
+
+                            <div class="pt-4 flex items-center justify-end gap-3 border-t border-slate-100">
+                                <button type="button" onclick="document.getElementById('form-order').reset()" class="px-6 py-2.5 rounded-lg border border-slate-300 text-slate-600 font-medium hover:bg-slate-50 transition-all">ล้างค่า</button>
+                                <button type="submit" class="px-8 py-2.5 rounded-lg bg-brand-600 text-white font-medium shadow-lg shadow-brand-600/20 hover:bg-brand-700 hover:-translate-y-0.5 transition-all">บันทึกข้อมูล</button>
+                            </div>
+                        </form>
+
+                        <!-- Form Travel -->
+                        <form id="form-travel" class="p-6 md:p-8 space-y-6 hidden" onsubmit="handleTravelSubmit(event)">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div class="space-y-2">
+                                    <label class="text-sm font-medium text-slate-700">อ้างอิงเลขที่คำสั่ง <span class="text-red-500">*</span></label>
+                                    <input type="text" id="travel-order-number" required class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition-all">
+                                </div>
+                                <div class="space-y-2">
+                                    <label class="text-sm font-medium text-slate-700">ชื่อผู้ไปราชการ <span class="text-red-500">*</span></label>
+                                    <input type="text" id="travel-name" required class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition-all">
+                                </div>
+                            </div>
+                            <div class="space-y-2">
+                                <label class="text-sm font-medium text-slate-700">สถานที่ไปราชการ <span class="text-red-500">*</span></label>
+                                <div class="relative">
+                                    <i class="ph ph-map-pin absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                                    <input type="text" id="travel-destination" required class="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-emerald-500 outline-none transition-all">
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div class="space-y-2">
+                                    <label class="text-sm font-medium text-slate-700">เริ่มวันที่ <span class="text-red-500">*</span></label>
+                                    <input type="date" id="travel-start" required class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-emerald-500 outline-none transition-all text-slate-600">
+                                </div>
+                                <div class="space-y-2">
+                                    <label class="text-sm font-medium text-slate-700">ถึงวันที่ <span class="text-red-500">*</span></label>
+                                    <input type="date" id="travel-end" required class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-emerald-500 outline-none transition-all text-slate-600">
+                                </div>
+                            </div>
+                            <div class="space-y-2">
+                                <label class="text-sm font-medium text-slate-700">วัตถุประสงค์</label>
+                                <textarea id="travel-purpose" rows="3" class="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-emerald-500 outline-none transition-all"></textarea>
+                            </div>
+                            
+                            <div class="p-4 bg-slate-50 rounded-xl border border-slate-200 border-dashed">
+                                <label class="block text-sm font-medium text-slate-700 mb-2">ไฟล์แนบ (PDF)</label>
+                                <input type="file" id="travel-file" accept="application/pdf" class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-emerald-100 file:text-emerald-700 hover:file:bg-emerald-200 cursor-pointer">
+                            </div>
+
+                            <div class="pt-4 flex items-center justify-end gap-3 border-t border-slate-100">
+                                <button type="button" onclick="document.getElementById('form-travel').reset()" class="px-6 py-2.5 rounded-lg border border-slate-300 text-slate-600 font-medium hover:bg-slate-50 transition-all">ล้างค่า</button>
+                                <button type="submit" class="px-8 py-2.5 rounded-lg bg-emerald-600 text-white font-medium shadow-lg shadow-emerald-600/20 hover:bg-emerald-700 hover:-translate-y-0.5 transition-all">บันทึกงานราชการ</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Search Page -->
+                <div id="page-search" class="page hidden max-w-7xl mx-auto">
+                    <div class="mb-8">
+                        <h2 class="text-2xl font-bold text-slate-800">ค้นหาและรายงาน</h2>
+                        <p class="text-slate-500">ค้นหาข้อมูลทั้งหมดในระบบ</p>
+                    </div>
+
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 mb-6">
+                        <div class="flex flex-col md:flex-row gap-4">
+                            <div class="relative flex-1">
+                                <i class="ph ph-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg"></i>
+                                <input type="text" id="search-keyword" placeholder="พิมพ์คำค้นหา..." class="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-brand-500 focus:border-transparent outline-none transition-all" oninput="performSearch()">
+                            </div>
+                            <select id="search-type" class="px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-brand-500 outline-none text-slate-700 font-medium" onchange="performSearch()">
+                                <option value="all">ทั้งหมด</option>
+                                <option value="order">คำสั่ง</option>
+                                <option value="travel">งานไปราชการ</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden min-h-[300px]">
+                        <div class="bg-slate-50 px-6 py-3 border-b border-slate-100 flex justify-between items-center">
+                            <span class="text-xs font-bold text-slate-500 uppercase tracking-wide">ผลการค้นหา</span>
+                            <span id="search-count" class="text-xs font-medium bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full">0 รายการ</span>
+                        </div>
+                        <div id="search-results" class="divide-y divide-slate-100">
+                            <!-- Results will appear here -->
+                            <div class="p-12 text-center text-slate-400">
+                                <i class="ph ph-magnifying-glass text-4xl mb-2"></i>
+                                <p>พิมพ์คำค้นหาเพื่อเริ่มค้นหาข้อมูล</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
     </div>
 
-    <!-- Orders Page -->
-    <div id="page-orders" class="page hidden p-6">
-     <div class="flex justify-between mb-6">
-      <h2 class="text-2xl font-bold text-gray-800">คำสั่งกลุ่มงาน</h2>
-      <button onclick="showPage('add'); setAddTab('order')" class="btn-primary bg-blue-600 text-white px-4 py-2 rounded-lg">เพิ่มคำสั่งใหม่</button>
-     </div>
-     <div class="bg-white rounded-xl shadow-md p-4">
-        <input type="text" id="search-orders" placeholder="ค้นหา..." class="w-full px-4 py-2 border rounded-lg mb-4" oninput="filterOrders()">
-        <div class="overflow-x-auto"><table class="w-full"><tbody id="orders-table-body" class="divide-y"></tbody></table></div>
-     </div>
-    </div>
-
-    <!-- Travels Page -->
-    <div id="page-travels" class="page hidden p-6">
-     <div class="flex justify-between mb-6">
-      <h2 class="text-2xl font-bold text-gray-800">งานไปราชการ</h2>
-      <button onclick="showPage('add'); setAddTab('travel')" class="btn-primary bg-green-600 text-white px-4 py-2 rounded-lg">เพิ่มงานไปราชการ</button>
-     </div>
-     <div class="bg-white rounded-xl shadow-md p-4">
-        <input type="text" id="search-travels" placeholder="ค้นหา..." class="w-full px-4 py-2 border rounded-lg mb-4" oninput="filterTravels()">
-        <div class="overflow-x-auto"><table class="w-full"><tbody id="travels-table-body" class="divide-y"></tbody></table></div>
-     </div>
-    </div>
-
-    <!-- Add Data Page -->
-    <div id="page-add" class="page hidden p-6">
-     <div class="bg-white rounded-xl shadow-md p-6">
-      <div class="flex border-b mb-6">
-        <button id="tab-order" onclick="setAddTab('order')" class="flex-1 px-6 py-4 font-bold border-b-2 border-blue-600 text-blue-600">เพิ่มคำสั่ง</button>
-        <button id="tab-travel" onclick="setAddTab('travel')" class="flex-1 px-6 py-4 text-gray-500">เพิ่มงานไปราชการ</button>
-      </div>
-      
-      <form id="form-order" class="space-y-4" onsubmit="handleOrderSubmit(event)">
-       <input type="text" id="order-number" required class="w-full p-2 border rounded" placeholder="เลขที่คำสั่ง *">
-       <input type="date" id="order-date" required class="w-full p-2 border rounded">
-       <input type="text" id="order-subject" required class="w-full p-2 border rounded" placeholder="เรื่อง *">
-       <select id="order-type" class="w-full p-2 border rounded"><option value="แต่งตั้ง">แต่งตั้ง</option><option value="ย้าย">ย้าย</option><option value="เลื่อนขั้น">เลื่อนขั้น</option><option value="อื่นๆ">อื่นๆ</option></select>
-       <input type="text" id="order-agency" class="w-full p-2 border rounded" placeholder="หน่วยงาน">
-       <div class="border p-2 rounded bg-gray-50"><label class="text-sm">ไฟล์แนบ (PDF)</label><input type="file" id="order-file" accept="application/pdf" class="w-full mt-1"></div>
-       <button type="submit" class="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700">บันทึก</button>
-      </form>
-
-      <form id="form-travel" class="space-y-4 hidden" onsubmit="handleTravelSubmit(event)">
-       <input type="text" id="travel-order-number" required class="w-full p-2 border rounded" placeholder="เลขที่คำสั่ง *">
-       <input type="text" id="travel-name" required class="w-full p-2 border rounded" placeholder="ชื่อผู้ไปราชการ *">
-       <input type="text" id="travel-destination" required class="w-full p-2 border rounded" placeholder="สถานที่ *">
-       <div class="flex gap-2">
-           <input type="date" id="travel-start" required class="w-full p-2 border rounded" placeholder="เริ่ม">
-           <input type="date" id="travel-end" required class="w-full p-2 border rounded" placeholder="ถึง">
-       </div>
-       <textarea id="travel-purpose" class="w-full p-2 border rounded" placeholder="วัตถุประสงค์"></textarea>
-       <div class="border p-2 rounded bg-gray-50"><label class="text-sm">ไฟล์แนบ (PDF)</label><input type="file" id="travel-file" accept="application/pdf" class="w-full mt-1"></div>
-       <button type="submit" class="w-full bg-green-600 text-white p-2 rounded hover:bg-green-700">บันทึก</button>
-      </form>
-     </div>
-    </div>
-
-    <!-- Search Page -->
-    <div id="page-search" class="page hidden p-6">
-        <div class="bg-white rounded-xl shadow-md p-6">
-          <input type="text" id="search-keyword" placeholder="พิมพ์คำค้นหา..." class="w-full p-2 border rounded mb-4" oninput="performSearch()">
-          <div id="search-results" class="divide-y max-h-96 overflow-y-auto"></div>
+    <!-- Modals -->
+    <!-- Detail Modal -->
+    <div id="view-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm transition-opacity opacity-0 pointer-events-none">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-2xl transform scale-95 transition-transform duration-200">
+            <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50 rounded-t-2xl">
+                <h3 class="font-bold text-lg text-slate-800 flex items-center gap-2"><i class="ph-fill ph-info text-brand-600"></i> รายละเอียด</h3>
+                <button onclick="closeModal('view-modal')" class="w-8 h-8 rounded-full bg-slate-200 hover:bg-slate-300 flex items-center justify-center text-slate-600 transition-colors"><i class="ph-bold ph-x"></i></button>
+            </div>
+            <div id="modal-content" class="p-6 text-slate-600 space-y-4"></div>
         </div>
     </div>
 
-   </main>
-  </div>
-
-  <!-- View/Delete Modals (Hidden) -->
-  <div id="view-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 p-4">
-   <div class="bg-white rounded-lg max-w-lg w-full p-6 relative">
-    <button onclick="document.getElementById('view-modal').classList.add('hidden'); document.getElementById('view-modal').classList.remove('flex')" class="absolute top-2 right-2 text-xl">×</button>
-    <div id="modal-content"></div>
-   </div>
-  </div>
-
-  <div id="delete-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 p-4">
-    <div class="bg-white rounded-lg p-6 text-center">
-        <p class="mb-4 text-lg">ยืนยันการลบ?</p>
-        <button onclick="document.getElementById('delete-modal').classList.remove('flex'); document.getElementById('delete-modal').classList.add('hidden')" class="border px-4 py-2 rounded mr-2">ยกเลิก</button>
-        <button id="btn-confirm-delete" onclick="confirmDelete()" class="bg-red-600 text-white px-4 py-2 rounded">ลบ</button>
+    <!-- Delete Modal -->
+    <div id="delete-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm transition-opacity opacity-0 pointer-events-none">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center transform scale-95 transition-transform duration-200">
+            <div class="w-16 h-16 rounded-full bg-red-50 text-red-500 flex items-center justify-center mx-auto mb-4">
+                <i class="ph-fill ph-trash text-3xl"></i>
+            </div>
+            <h3 class="text-xl font-bold text-slate-800 mb-2">ยืนยันการลบ?</h3>
+            <p class="text-slate-500 mb-6 text-sm">ข้อมูลนี้จะถูกลบถาวรและไม่สามารถกู้คืนได้</p>
+            <div class="flex gap-3">
+                <button onclick="closeModal('delete-modal')" class="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-medium hover:bg-slate-50">ยกเลิก</button>
+                <button id="btn-confirm-delete" onclick="confirmDelete()" class="flex-1 px-4 py-2.5 rounded-xl bg-red-600 text-white font-medium shadow-lg shadow-red-600/20 hover:bg-red-700">ลบข้อมูล</button>
+            </div>
+        </div>
     </div>
-  </div>
 
-  <script>
-    const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbzQEL_IH0JP6oCVB76RjldKmajOS92oXb1s8UCXYvvGZLWig83CPYre5IVBaiXan83A/exec'; 
-    let allData = [];
-    let editTarget = null;
-    let deleteTargetId = null;
+    <script>
+        // ***********************************************
+        // CONFIG & STATE
+        // ***********************************************
+        const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbzQEL_IH0JP6oCVB76RjldKmajOS92oXb1s8UCXYvvGZLWig83CPYre5IVBaiXan83A/exec'; 
+        let allData = [];
+        let editTarget = null;
+        let deleteTargetId = null;
 
-    async function init() {
-        try {
-            // สำคัญ! ใช้ credentials: 'omit' เพื่อแก้ปัญหา Multi-login
-            const response = await fetch(`${GAS_API_URL}?action=read`, {
-                method: 'GET',
-                credentials: 'omit',
-                headers: { "Content-Type": "text/plain;charset=utf-8" }
-            });
+        // --- Init App ---
+        async function init() {
+            try {
+                // Multi-login Safe Fetch
+                const response = await fetch(`${GAS_API_URL}?action=read`, {
+                    method: 'GET',
+                    credentials: 'omit',
+                    headers: { "Content-Type": "text/plain;charset=utf-8" }
+                });
 
-            if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
-            
-            const json = await response.json();
-            
-            if(json.status === 'error') throw new Error(json.message);
-            
-            allData = Array.isArray(json) ? json : (json.data || []);
-            
-            updateDashboard();
-            updateOrdersTable();
-            updateTravelsTable();
-            
-        } catch (error) {
-            console.error('Connection Error:', error);
-            // แจ้งเตือนแต่อย่าล็อกหน้าจอ
-            alert('โหลดข้อมูลไม่สำเร็จ (อาจเกิดจากอินเทอร์เน็ตหรือสิทธิ์เข้าถึง) \nคุณสามารถใช้งานเมนูอื่นได้ แต่จะไม่เห็นข้อมูลเก่า');
-        } finally {
-            // ปิดหน้าโหลดเสมอ ไม่ว่าจะสำเร็จหรือไม่
-            document.getElementById('loading-overlay').style.display = 'none';
+                if (!response.ok) throw new Error('Network response error');
+                const json = await response.json();
+                
+                if(json.status === 'error') throw new Error(json.message);
+                allData = Array.isArray(json) ? json : (json.data || []);
+                
+                updateDashboard();
+                updateOrdersTable();
+                updateTravelsTable();
+                
+            } catch (error) {
+                console.error(error);
+                alert('ไม่สามารถโหลดข้อมูลได้ โปรดตรวจสอบการเชื่อมต่อ');
+            } finally {
+                // Hide Loading
+                const loading = document.getElementById('loading-overlay');
+                loading.classList.add('opacity-0', 'pointer-events-none');
+                setTimeout(() => loading.style.display = 'none', 300);
+            }
         }
-    }
 
-    // --- Core Functions (With fix for POST) ---
-    async function submitData(payload) {
-        document.getElementById('loading-overlay').style.display = 'flex';
-        document.getElementById('loading-text').innerText = "กำลังบันทึก...";
-        try {
-            const isUpdate = !!editTarget;
-            payload.__backendId = isUpdate ? editTarget : undefined;
-            const action = isUpdate ? 'update' : 'create';
-            
-            // ใช้ no-cors เพื่อส่งข้อมูลได้แน่นอน (แม้จะอ่าน response ไม่ได้ในบาง browser)
-            await fetch(GAS_API_URL, {
-                method: 'POST',
-                credentials: 'omit',
-                headers: { "Content-Type": "text/plain;charset=utf-8" },
-                body: JSON.stringify({ action, payload })
-            });
-            
-            // เนื่องจากใช้ no-cors เราจะสมมติว่าสำเร็จถ้าไม่ Error
-            alert('ส่งข้อมูลเรียบร้อยแล้ว');
-            window.location.reload(); 
+        // --- Data Submission ---
+        async function submitData(payload) {
+            // Show custom loading text if needed
+            const loading = document.getElementById('loading-overlay');
+            loading.style.display = 'flex';
+            loading.classList.remove('opacity-0', 'pointer-events-none');
+            document.getElementById('loading-text').innerText = "กำลังบันทึกข้อมูล...";
 
-        } catch (e) {
-            alert('Error: ' + e.message);
-            document.getElementById('loading-overlay').style.display = 'none';
+            try {
+                const isUpdate = !!editTarget;
+                payload.__backendId = isUpdate ? editTarget : undefined;
+                const action = isUpdate ? 'update' : 'create';
+                
+                await fetch(GAS_API_URL, {
+                    method: 'POST',
+                    credentials: 'omit',
+                    headers: { "Content-Type": "text/plain;charset=utf-8" },
+                    body: JSON.stringify({ action, payload })
+                });
+                
+                // Alert & Reload
+                setTimeout(() => {
+                    alert('✅ บันทึกข้อมูลเรียบร้อยแล้ว');
+                    window.location.reload();
+                }, 500);
+
+            } catch (e) {
+                alert('Error: ' + e.message);
+                loading.style.display = 'none';
+            }
         }
-    }
 
-    // --- Helpers & UI ---
-    const fileToBase64 = file => new Promise((resolve,reject) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = reject;
-    });
-
-    async function handleOrderSubmit(e) {
-        e.preventDefault();
-        const file = document.getElementById('order-file').files[0];
-        let fileData = {};
-        if(file) {
-            if(file.size > 5*1024*1024) return alert('ไฟล์ใหญ่เกิน 5MB');
-            fileData = { file_base64: await fileToBase64(file), file_name: file.name, file_type: file.type };
-        }
-        submitData({
-            type: 'order',
-            order_number: document.getElementById('order-number').value,
-            subject: document.getElementById('order-subject').value,
-            issue_date: document.getElementById('order-date').value,
-            order_type: document.getElementById('order-type').value,
-            issuing_agency: document.getElementById('order-agency').value,
-            ...fileData
+        const fileToBase64 = file => new Promise((resolve,reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = reject;
         });
-    }
 
-    async function handleTravelSubmit(e) {
-        e.preventDefault();
-        const file = document.getElementById('travel-file').files[0];
-        let fileData = {};
-        if(file) {
-            if(file.size > 5*1024*1024) return alert('ไฟล์ใหญ่เกิน 5MB');
-            fileData = { file_base64: await fileToBase64(file), file_name: file.name, file_type: file.type };
-        }
-        submitData({
-            type: 'travel',
-            order_number: document.getElementById('travel-order-number').value,
-            traveler_name: document.getElementById('travel-name').value,
-            destination: document.getElementById('travel-destination').value,
-            start_date: document.getElementById('travel-start').value,
-            end_date: document.getElementById('travel-end').value,
-            purpose: document.getElementById('travel-purpose').value,
-            ...fileData
-        });
-    }
-
-    function updateDashboard() {
-        document.getElementById('stat-orders').innerText = allData.filter(x=>x.type=='order').length;
-        document.getElementById('stat-travels').innerText = allData.filter(x=>x.type=='travel').length;
-        
-        const recentO = allData.filter(x=>x.type=='order').slice(-5).reverse();
-        document.getElementById('recent-orders').innerHTML = recentO.map(x=>`<div class="p-2 border-b cursor-pointer hover:bg-gray-50" onclick="viewItem('${x.__backendId}')">${x.order_number} ${x.subject}</div>`).join('') || '<div class="p-4 text-center text-gray-400">ว่าง</div>';
-        
-        const recentT = allData.filter(x=>x.type=='travel').slice(-5).reverse();
-        document.getElementById('recent-travels').innerHTML = recentT.map(x=>`<div class="p-2 border-b cursor-pointer hover:bg-gray-50" onclick="viewItem('${x.__backendId}')">${x.traveler_name} -> ${x.destination}</div>`).join('') || '<div class="p-4 text-center text-gray-400">ว่าง</div>';
-    }
-
-    function updateOrdersTable() {
-        const list = allData.filter(x=>x.type=='order').reverse();
-        document.getElementById('orders-table-body').innerHTML = list.map(x=>`
-            <tr class="hover:bg-gray-50 text-sm">
-                <td class="p-3">${x.order_number}</td>
-                <td class="p-3">${x.subject}</td>
-                <td class="p-3">${x.issue_date}</td>
-                <td class="p-3"><button onclick="viewItem('${x.__backendId}')" class="text-blue-600 mr-2">ดู</button><button onclick="deleteItem('${x.__backendId}')" class="text-red-600">ลบ</button></td>
-            </tr>`).join('') || '<tr><td colspan="4" class="text-center p-4">ไม่มีข้อมูล</td></tr>';
-    }
-
-    function updateTravelsTable() {
-        const list = allData.filter(x=>x.type=='travel').reverse();
-        document.getElementById('travels-table-body').innerHTML = list.map(x=>`
-            <tr class="hover:bg-gray-50 text-sm">
-                <td class="p-3">${x.order_number}</td>
-                <td class="p-3">${x.traveler_name}</td>
-                <td class="p-3">${x.destination}</td>
-                <td class="p-3"><button onclick="viewItem('${x.__backendId}')" class="text-green-600 mr-2">ดู</button><button onclick="deleteItem('${x.__backendId}')" class="text-red-600">ลบ</button></td>
-            </tr>`).join('') || '<tr><td colspan="4" class="text-center p-4">ไม่มีข้อมูล</td></tr>';
-    }
-
-    function viewItem(id) {
-        const d = allData.find(x=>x.__backendId == id);
-        if(!d) return;
-        const fileLink = d.file_url ? `<a href="${d.file_url}" target="_blank" class="text-blue-600 underline block mt-2">📄 เปิดไฟล์แนบ</a>` : '';
-        const content = d.type === 'order' 
-            ? `<h3 class="font-bold text-lg">${d.order_number}</h3><p class="text-gray-600">${d.subject}</p><p>วันที่: ${d.issue_date}</p>${fileLink}`
-            : `<h3 class="font-bold text-lg">${d.traveler_name}</h3><p>ไป: ${d.destination}</p><p>วันที่: ${d.start_date} - ${d.end_date}</p>${fileLink}`;
-        
-        document.getElementById('modal-content').innerHTML = content;
-        document.getElementById('view-modal').classList.remove('hidden');
-        document.getElementById('view-modal').classList.add('flex');
-    }
-
-    function deleteItem(id) {
-        deleteTargetId = id;
-        document.getElementById('delete-modal').classList.remove('hidden');
-        document.getElementById('delete-modal').classList.add('flex');
-    }
-
-    async function confirmDelete() {
-        if(!deleteTargetId) return;
-        document.getElementById('loading-overlay').style.display = 'flex';
-        document.getElementById('loading-text').innerText = "กำลังลบ...";
-        try {
-            await fetch(GAS_API_URL, { 
-                method: 'POST', 
-                credentials: 'omit',
-                headers: { "Content-Type": "text/plain;charset=utf-8" },
-                body: JSON.stringify({ action: 'delete', id: deleteTargetId }) 
+        async function handleOrderSubmit(e) {
+            e.preventDefault();
+            const file = document.getElementById('order-file').files[0];
+            let fileData = {};
+            if(file) {
+                if(file.size > 5*1024*1024) return alert('ไฟล์ใหญ่เกิน 5MB');
+                fileData = { file_base64: await fileToBase64(file), file_name: file.name, file_type: file.type };
+            }
+            submitData({
+                type: 'order',
+                order_number: document.getElementById('order-number').value,
+                subject: document.getElementById('order-subject').value,
+                issue_date: document.getElementById('order-date').value,
+                order_type: document.getElementById('order-type').value,
+                issuing_agency: document.getElementById('order-agency').value,
+                ...fileData
             });
-            window.location.reload();
-        } catch(e) { alert('ลบไม่สำเร็จ'); document.getElementById('loading-overlay').style.display = 'none'; }
-    }
+        }
 
-    // Navigation
-    function showPage(page) {
-        document.querySelectorAll('.page').forEach(el=>el.classList.add('hidden'));
-        document.getElementById('page-'+page).classList.remove('hidden');
-        document.querySelectorAll('.sidebar-item').forEach(el=>el.classList.remove('active'));
-        const btn = document.querySelector(`button[onclick="showPage('${page}')"]`);
-        if(btn) btn.classList.add('active');
-    }
-    function setAddTab(tab) {
-        document.getElementById('form-order').classList.toggle('hidden', tab !== 'order');
-        document.getElementById('form-travel').classList.toggle('hidden', tab !== 'travel');
-        document.getElementById('tab-order').className = tab === 'order' ? 'flex-1 px-6 py-4 font-bold border-b-2 border-blue-600 text-blue-600' : 'flex-1 px-6 py-4 text-gray-500';
-        document.getElementById('tab-travel').className = tab === 'travel' ? 'flex-1 px-6 py-4 font-bold border-b-2 border-green-600 text-green-600' : 'flex-1 px-6 py-4 text-gray-500';
-    }
-    
-    // Start App
-    init();
+        async function handleTravelSubmit(e) {
+            e.preventDefault();
+            const file = document.getElementById('travel-file').files[0];
+            let fileData = {};
+            if(file) {
+                if(file.size > 5*1024*1024) return alert('ไฟล์ใหญ่เกิน 5MB');
+                fileData = { file_base64: await fileToBase64(file), file_name: file.name, file_type: file.type };
+            }
+            submitData({
+                type: 'travel',
+                order_number: document.getElementById('travel-order-number').value,
+                traveler_name: document.getElementById('travel-name').value,
+                destination: document.getElementById('travel-destination').value,
+                start_date: document.getElementById('travel-start').value,
+                end_date: document.getElementById('travel-end').value,
+                purpose: document.getElementById('travel-purpose').value,
+                ...fileData
+            });
+        }
 
-  </script>
- </body>
+        // --- UI Updates ---
+        function updateDashboard() {
+            document.getElementById('stat-orders').innerText = allData.filter(x=>x.type=='order').length;
+            document.getElementById('stat-travels').innerText = allData.filter(x=>x.type=='travel').length;
+            
+            const now = new Date();
+            const m = now.getMonth(), y = now.getFullYear();
+            
+            document.getElementById('stat-orders-month').innerText = allData.filter(x => x.type=='order' && new Date(x.issue_date).getMonth() === m && new Date(x.issue_date).getFullYear() === y).length;
+            document.getElementById('stat-travels-month').innerText = allData.filter(x => x.type=='travel' && new Date(x.start_date).getMonth() === m && new Date(x.start_date).getFullYear() === y).length;
+
+            const recentO = allData.filter(x=>x.type=='order').slice(-5).reverse();
+            document.getElementById('recent-orders').innerHTML = recentO.map(o => `
+                <div class="p-4 hover:bg-brand-50 cursor-pointer transition-colors flex justify-between items-center group" onclick="viewItem('${o.__backendId}')">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-xs">${o.order_number.split('/')[0]}</div>
+                        <div>
+                            <p class="font-semibold text-slate-700 text-sm group-hover:text-brand-700">${o.order_number}</p>
+                            <p class="text-xs text-slate-500 truncate w-40">${o.subject}</p>
+                        </div>
+                    </div>
+                    <span class="text-xs text-slate-400 font-mono">${formatDate(o.issue_date)}</span>
+                </div>
+            `).join('') || '<div class="p-8 text-center text-slate-300 text-sm">ยังไม่มีข้อมูล</div>';
+            
+            const recentT = allData.filter(x=>x.type=='travel').slice(-5).reverse();
+            document.getElementById('recent-travels').innerHTML = recentT.map(t => `
+                <div class="p-4 hover:bg-emerald-50 cursor-pointer transition-colors flex justify-between items-center group" onclick="viewItem('${t.__backendId}')">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center"><i class="ph-fill ph-user"></i></div>
+                        <div>
+                            <p class="font-semibold text-slate-700 text-sm group-hover:text-emerald-700">${t.traveler_name}</p>
+                            <p class="text-xs text-slate-500 truncate w-40">${t.destination}</p>
+                        </div>
+                    </div>
+                    <span class="text-xs text-slate-400 font-mono">${formatDate(t.start_date)}</span>
+                </div>
+            `).join('') || '<div class="p-8 text-center text-slate-300 text-sm">ยังไม่มีข้อมูล</div>';
+        }
+
+        function updateOrdersTable() {
+            const list = allData.filter(x=>x.type=='order').reverse();
+            document.getElementById('orders-table-body').innerHTML = list.map(o => `
+                <tr class="hover:bg-slate-50 transition-colors group">
+                    <td class="px-6 py-4 font-medium text-brand-700">${o.order_number}</td>
+                    <td class="px-6 py-4 text-slate-600 max-w-xs truncate">${o.subject}</td>
+                    <td class="px-6 py-4 text-slate-500 font-mono text-xs">${formatDate(o.issue_date)}</td>
+                    <td class="px-6 py-4"><span class="px-2 py-1 rounded-md text-xs font-semibold bg-slate-100 text-slate-600 border border-slate-200">${o.order_type}</span></td>
+                    <td class="px-6 py-4 text-center">
+                        <div class="flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button onclick="viewItem('${o.__backendId}')" class="p-2 rounded hover:bg-blue-100 text-blue-600"><i class="ph-bold ph-eye"></i></button>
+                            <button onclick="editOrder('${o.__backendId}')" class="p-2 rounded hover:bg-amber-100 text-amber-600"><i class="ph-bold ph-pencil-simple"></i></button>
+                            <button onclick="deleteItem('${o.__backendId}')" class="p-2 rounded hover:bg-red-100 text-red-600"><i class="ph-bold ph-trash"></i></button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('') || '<tr><td colspan="5" class="p-8 text-center text-slate-400">ไม่พบข้อมูล</td></tr>';
+        }
+
+        function updateTravelsTable() {
+            const list = allData.filter(x=>x.type=='travel').reverse();
+            document.getElementById('travels-table-body').innerHTML = list.map(t => `
+                <tr class="hover:bg-slate-50 transition-colors group">
+                    <td class="px-6 py-4 font-mono text-xs text-slate-500">${t.order_number}</td>
+                    <td class="px-6 py-4 font-medium text-slate-700">${t.traveler_name}</td>
+                    <td class="px-6 py-4 text-slate-600 max-w-xs truncate">${t.destination}</td>
+                    <td class="px-6 py-4 text-slate-500 text-xs">${formatDate(t.start_date)}</td>
+                    <td class="px-6 py-4 text-center">
+                        <div class="flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button onclick="viewItem('${t.__backendId}')" class="p-2 rounded hover:bg-emerald-100 text-emerald-600"><i class="ph-bold ph-eye"></i></button>
+                            <button onclick="editTravel('${t.__backendId}')" class="p-2 rounded hover:bg-amber-100 text-amber-600"><i class="ph-bold ph-pencil-simple"></i></button>
+                            <button onclick="deleteItem('${t.__backendId}')" class="p-2 rounded hover:bg-red-100 text-red-600"><i class="ph-bold ph-trash"></i></button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('') || '<tr><td colspan="5" class="p-8 text-center text-slate-400">ไม่พบข้อมูล</td></tr>';
+        }
+
+        function performSearch() {
+            const k = document.getElementById('search-keyword').value.toLowerCase();
+            const t = document.getElementById('search-type').value;
+            const res = allData.filter(i => {
+                if(t !== 'all' && i.type !== t) return false;
+                return Object.values(i).join(' ').toLowerCase().includes(k);
+            });
+            document.getElementById('search-count').innerText = `${res.length} รายการ`;
+            
+            if(res.length === 0) {
+                document.getElementById('search-results').innerHTML = `<div class="p-12 text-center text-slate-400"><i class="ph ph-warning-circle text-4xl mb-2"></i><p>ไม่พบข้อมูลที่ตรงกัน</p></div>`;
+                return;
+            }
+
+            document.getElementById('search-results').innerHTML = res.map(x => `
+                <div class="p-4 hover:bg-slate-50 cursor-pointer flex items-center justify-between group" onclick="viewItem('${x.__backendId}')">
+                    <div class="flex items-center gap-4">
+                        <div class="w-10 h-10 rounded-lg ${x.type==='order'?'bg-blue-100 text-blue-600':'bg-emerald-100 text-emerald-600'} flex items-center justify-center text-xl">
+                            <i class="ph-fill ${x.type==='order'?'ph-file-text':'ph-airplane-tilt'}"></i>
+                        </div>
+                        <div>
+                            <p class="font-bold text-slate-700 text-sm">${x.type==='order' ? x.order_number : x.traveler_name}</p>
+                            <p class="text-xs text-slate-500">${x.type==='order' ? x.subject : 'ไป: '+x.destination}</p>
+                        </div>
+                    </div>
+                    <i class="ph-bold ph-caret-right text-slate-300 group-hover:text-slate-500"></i>
+                </div>
+            `).join('');
+        }
+
+        // --- Modals & Helpers ---
+        function openModal(id) {
+            const m = document.getElementById(id);
+            m.classList.remove('hidden');
+            // Slight delay for animation
+            requestAnimationFrame(() => {
+                m.classList.remove('opacity-0', 'pointer-events-none');
+                m.querySelector('div').classList.remove('scale-95');
+                m.querySelector('div').classList.add('scale-100');
+            });
+        }
+        function closeModal(id) {
+            const m = document.getElementById(id);
+            m.classList.add('opacity-0', 'pointer-events-none');
+            m.querySelector('div').classList.add('scale-95');
+            m.querySelector('div').classList.remove('scale-100');
+            setTimeout(() => m.classList.add('hidden'), 200);
+        }
+
+        function viewItem(id) {
+            const d = allData.find(x=>x.__backendId == id);
+            if(!d) return;
+            const isOrder = d.type === 'order';
+            const colorClass = isOrder ? 'text-brand-600 bg-brand-50' : 'text-emerald-600 bg-emerald-50';
+            const fileLink = d.file_url ? `<a href="${d.file_url}" target="_blank" class="flex items-center gap-2 p-3 rounded-lg border border-slate-200 hover:bg-slate-50 transition-colors mt-2 text-sm font-medium text-slate-700"><i class="ph-fill ph-file-pdf text-red-500 text-xl"></i> ${d.file_name || 'เปิดเอกสารแนบ'}</a>` : '<span class="text-slate-400 text-sm italic">ไม่มีเอกสารแนบ</span>';
+            
+            document.getElementById('modal-content').innerHTML = `
+                <div class="space-y-4">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <span class="text-xs font-bold uppercase tracking-wider ${colorClass} px-2 py-1 rounded">${isOrder ? 'คำสั่ง' : 'ไปราชการ'}</span>
+                            <h2 class="text-xl font-bold text-slate-800 mt-2">${isOrder ? d.order_number : d.traveler_name}</h2>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-xs text-slate-400">วันที่บันทึก</p>
+                            <p class="font-mono text-sm text-slate-600">${formatDate(d.created_at)}</p>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-4 py-4 border-y border-slate-100">
+                        <div>
+                            <p class="text-xs text-slate-400 mb-1">${isOrder ? 'เรื่อง' : 'สถานที่'}</p>
+                            <p class="text-sm font-medium text-slate-700">${isOrder ? d.subject : d.destination}</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-slate-400 mb-1">${isOrder ? 'ลงวันที่' : 'ช่วงเวลา'}</p>
+                            <p class="text-sm font-medium text-slate-700">${isOrder ? formatDate(d.issue_date) : formatDate(d.start_date) + ' - ' + formatDate(d.end_date)}</p>
+                        </div>
+                        ${isOrder ? `<div><p class="text-xs text-slate-400 mb-1">ประเภท</p><p class="text-sm text-slate-700">${d.order_type}</p></div>` : `<div><p class="text-xs text-slate-400 mb-1">วัตถุประสงค์</p><p class="text-sm text-slate-700">${d.purpose}</p></div>`}
+                    </div>
+
+                    <div>
+                        <p class="text-xs text-slate-400 mb-2">เอกสารแนบ</p>
+                        ${fileLink}
+                    </div>
+                </div>
+            `;
+            openModal('view-modal');
+        }
+
+        function deleteItem(id) { deleteTargetId = id; openModal('delete-modal'); }
+        async function confirmDelete() {
+            if(!deleteTargetId) return;
+            const loading = document.getElementById('loading-overlay');
+            loading.style.display = 'flex';
+            loading.classList.remove('opacity-0', 'pointer-events-none');
+            document.getElementById('loading-text').innerText = "กำลังลบข้อมูล...";
+            
+            try {
+                await fetch(GAS_API_URL, { 
+                    method: 'POST', 
+                    credentials: 'omit',
+                    headers: { "Content-Type": "text/plain;charset=utf-8" },
+                    body: JSON.stringify({ action: 'delete', id: deleteTargetId }) 
+                });
+                window.location.reload();
+            } catch(e) { alert('ลบไม่สำเร็จ'); loading.style.display = 'none'; }
+        }
+
+        // Edit Functions
+        function editOrder(id) {
+            const d = allData.find(x => x.__backendId == id);
+            if(!d) return;
+            editTarget = id;
+            showPage('add'); setAddTab('order');
+            document.getElementById('order-number').value = d.order_number;
+            document.getElementById('order-subject').value = d.subject;
+            document.getElementById('order-date').value = formatDateInput(d.issue_date);
+            document.getElementById('order-type').value = d.order_type;
+            document.getElementById('order-agency').value = d.issuing_agency;
+            window.scrollTo(0,0);
+        }
+        function editTravel(id) {
+            const d = allData.find(x => x.__backendId == id);
+            if(!d) return;
+            editTarget = id;
+            showPage('add'); setAddTab('travel');
+            document.getElementById('travel-order-number').value = d.order_number;
+            document.getElementById('travel-name').value = d.traveler_name;
+            document.getElementById('travel-destination').value = d.destination;
+            document.getElementById('travel-start').value = formatDateInput(d.start_date);
+            document.getElementById('travel-end').value = formatDateInput(d.end_date);
+            document.getElementById('travel-purpose').value = d.purpose;
+            window.scrollTo(0,0);
+        }
+
+        // Nav Helpers
+        function showPage(page) {
+            document.querySelectorAll('.page').forEach(el => el.classList.add('hidden'));
+            document.getElementById('page-'+page).classList.remove('hidden');
+            
+            document.querySelectorAll('.sidebar-link').forEach(el => el.classList.remove('active', 'bg-white/10', 'text-white'));
+            const btn = document.querySelector(`button[data-page="${page}"]`);
+            if(btn) btn.classList.add('active', 'text-white');
+        }
+
+        function setAddTab(tab) {
+            document.getElementById('form-order').classList.toggle('hidden', tab !== 'order');
+            document.getElementById('form-travel').classList.toggle('hidden', tab !== 'travel');
+            
+            const t1 = document.getElementById('tab-order');
+            const t2 = document.getElementById('tab-travel');
+            
+            if(tab === 'order') {
+                t1.classList.add('border-brand-600', 'text-brand-600', 'bg-brand-50/50');
+                t1.classList.remove('border-transparent', 'text-slate-500');
+                t2.classList.add('border-transparent', 'text-slate-500');
+                t2.classList.remove('border-emerald-600', 'text-emerald-600', 'bg-emerald-50/50');
+            } else {
+                t2.classList.add('border-emerald-600', 'text-emerald-600', 'bg-emerald-50/50');
+                t2.classList.remove('border-transparent', 'text-slate-500');
+                t1.classList.add('border-transparent', 'text-slate-500');
+                t1.classList.remove('border-brand-600', 'text-brand-600', 'bg-brand-50/50');
+            }
+        }
+
+        // Utils
+        function formatDate(d) {
+            if(!d) return '-';
+            const date = new Date(d);
+            return isNaN(date) ? '-' : date.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' });
+        }
+        function formatDateInput(d) {
+            if(!d) return '';
+            const date = new Date(d);
+            const offset = date.getTimezoneOffset() * 60000;
+            return new Date(date.getTime() - offset).toISOString().split('T')[0];
+        }
+
+        // Start
+        init();
+
+    </script>
+</body>
 </html>

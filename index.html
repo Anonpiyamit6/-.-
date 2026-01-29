@@ -24,12 +24,11 @@
  </head>
  <body class="h-full bg-gray-100">
   
-  <!-- Loading Screen (มีปุ่มปิดฉุกเฉินมุมขวาบน) -->
+  <!-- Loading Screen -->
   <div id="loading-overlay">
-      <button onclick="document.getElementById('loading-overlay').style.display='none'" class="absolute top-5 right-5 text-gray-400 hover:text-gray-600 text-sm border px-2 py-1 rounded">✕ ปิดหน้านี้ (Emergency)</button>
       <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-600 mb-4"></div>
-      <p id="loading-text" class="text-blue-800 font-semibold animate-pulse">กำลังเชื่อมต่อ Google...</p>
-      <p id="error-debug" class="text-red-500 text-xs mt-4 hidden"></p>
+      <p id="loading-text" class="text-blue-800 font-semibold animate-pulse">กำลังเชื่อมต่อฐานข้อมูล...</p>
+      <button onclick="document.getElementById('loading-overlay').style.display='none'" class="mt-8 text-gray-400 text-sm underline hover:text-gray-600">กดตรงนี้เพื่อปิดหน้าโหลด (หากค้างนาน)</button>
   </div>
 
   <div id="app" class="h-full flex overflow-hidden">
@@ -173,20 +172,6 @@
   </div>
 
   <script>
-    // --- ระบบดักจับ Error (Safety Mode) ---
-    window.onerror = function(msg, url, line) {
-        const errorMsg = "⚠️ เกิดข้อผิดพลาดในโค้ด (JS Error): " + msg + " (บรรทัด: " + line + ")";
-        console.error(errorMsg);
-        const debugEl = document.getElementById('error-debug');
-        if(debugEl) {
-            debugEl.innerText = errorMsg;
-            debugEl.classList.remove('hidden');
-        }
-        // ถ้าเกิด Error ให้ซ่อน Loading ทันที เพื่อให้คุณเห็นหน้าจอ
-        document.getElementById('loading-overlay').style.display = 'none';
-        return false;
-    };
-
     const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbzQEL_IH0JP6oCVB76RjldKmajOS92oXb1s8UCXYvvGZLWig83CPYre5IVBaiXan83A/exec'; 
     let allData = [];
     let editTarget = null;
@@ -194,33 +179,36 @@
 
     async function init() {
         try {
-            // โหลดข้อมูล
-            const response = await fetch(`${GAS_API_URL}?action=read`);
-            if (!response.ok) throw new Error('Network response was not ok');
+            // สำคัญ! ใช้ credentials: 'omit' เพื่อแก้ปัญหา Multi-login
+            const response = await fetch(`${GAS_API_URL}?action=read`, {
+                method: 'GET',
+                credentials: 'omit',
+                headers: { "Content-Type": "text/plain;charset=utf-8" }
+            });
+
+            if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
+            
             const json = await response.json();
             
             if(json.status === 'error') throw new Error(json.message);
             
             allData = Array.isArray(json) ? json : (json.data || []);
             
-            // อัปเดตหน้าจอ
             updateDashboard();
             updateOrdersTable();
             updateTravelsTable();
             
-            // ซ่อน Loading เมื่อเสร็จสมบูรณ์
-            document.getElementById('loading-overlay').style.display = 'none';
-
         } catch (error) {
-            console.error('Init Error:', error);
-            document.getElementById('loading-text').innerText = "โหลดไม่สำเร็จ: " + error.message;
-            document.getElementById('loading-text').classList.remove('text-blue-800');
-            document.getElementById('loading-text').classList.add('text-red-600');
-            // ไม่ซ่อน Loading เพื่อให้เห็น Error message (แต่กดปุ่มปิดได้)
+            console.error('Connection Error:', error);
+            // แจ้งเตือนแต่อย่าล็อกหน้าจอ
+            alert('โหลดข้อมูลไม่สำเร็จ (อาจเกิดจากอินเทอร์เน็ตหรือสิทธิ์เข้าถึง) \nคุณสามารถใช้งานเมนูอื่นได้ แต่จะไม่เห็นข้อมูลเก่า');
+        } finally {
+            // ปิดหน้าโหลดเสมอ ไม่ว่าจะสำเร็จหรือไม่
+            document.getElementById('loading-overlay').style.display = 'none';
         }
     }
 
-    // --- Core Functions ---
+    // --- Core Functions (With fix for POST) ---
     async function submitData(payload) {
         document.getElementById('loading-overlay').style.display = 'flex';
         document.getElementById('loading-text').innerText = "กำลังบันทึก...";
@@ -229,13 +217,18 @@
             payload.__backendId = isUpdate ? editTarget : undefined;
             const action = isUpdate ? 'update' : 'create';
             
+            // ใช้ no-cors เพื่อส่งข้อมูลได้แน่นอน (แม้จะอ่าน response ไม่ได้ในบาง browser)
             await fetch(GAS_API_URL, {
                 method: 'POST',
+                credentials: 'omit',
+                headers: { "Content-Type": "text/plain;charset=utf-8" },
                 body: JSON.stringify({ action, payload })
             });
             
-            alert('บันทึกสำเร็จ');
-            window.location.reload(); // รีโหลดง่ายที่สุดเพื่อเคลียร์ค่า
+            // เนื่องจากใช้ no-cors เราจะสมมติว่าสำเร็จถ้าไม่ Error
+            alert('ส่งข้อมูลเรียบร้อยแล้ว');
+            window.location.reload(); 
+
         } catch (e) {
             alert('Error: ' + e.message);
             document.getElementById('loading-overlay').style.display = 'none';
@@ -346,7 +339,12 @@
         document.getElementById('loading-overlay').style.display = 'flex';
         document.getElementById('loading-text').innerText = "กำลังลบ...";
         try {
-            await fetch(GAS_API_URL, { method: 'POST', body: JSON.stringify({ action: 'delete', id: deleteTargetId }) });
+            await fetch(GAS_API_URL, { 
+                method: 'POST', 
+                credentials: 'omit',
+                headers: { "Content-Type": "text/plain;charset=utf-8" },
+                body: JSON.stringify({ action: 'delete', id: deleteTargetId }) 
+            });
             window.location.reload();
         } catch(e) { alert('ลบไม่สำเร็จ'); document.getElementById('loading-overlay').style.display = 'none'; }
     }

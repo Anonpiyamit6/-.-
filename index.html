@@ -13,23 +13,23 @@
     .sidebar-item:hover { background: rgba(255,255,255,0.1); }
     .sidebar-item.active { background: rgba(255,255,255,0.2); border-left: 4px solid #fff; }
     .table-row:hover { background: #f8fafc; }
-    .card-stat { transition: transform 0.2s ease, box-shadow 0.2s ease; }
-    .card-stat:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0,0,0,0.1); }
-    .btn-primary { transition: all 0.2s ease; }
     .btn-primary:hover { transform: translateY(-1px); }
+    
     /* Loading Overlay */
     #loading-overlay {
-        position: fixed; inset: 0; background: rgba(255,255,255,0.9); 
+        position: fixed; inset: 0; background: rgba(255,255,255,0.95); 
         z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center;
     }
   </style>
  </head>
  <body class="h-full bg-gray-100">
   
-  <!-- Loading Screen -->
+  <!-- Loading Screen (มีปุ่มปิดฉุกเฉินมุมขวาบน) -->
   <div id="loading-overlay">
+      <button onclick="document.getElementById('loading-overlay').style.display='none'" class="absolute top-5 right-5 text-gray-400 hover:text-gray-600 text-sm border px-2 py-1 rounded">✕ ปิดหน้านี้ (Emergency)</button>
       <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-600 mb-4"></div>
-      <p id="loading-text" class="text-blue-800 font-semibold animate-pulse">กำลังโหลดข้อมูล...</p>
+      <p id="loading-text" class="text-blue-800 font-semibold animate-pulse">กำลังเชื่อมต่อ Google...</p>
+      <p id="error-debug" class="text-red-500 text-xs mt-4 hidden"></p>
   </div>
 
   <div id="app" class="h-full flex overflow-hidden">
@@ -60,22 +60,10 @@
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg><span class="font-medium">ค้นหา / รายงาน</span> </button></li>
      </ul>
     </nav>
-    <div class="p-4 border-t border-blue-700">
-     <div class="flex items-center gap-3 text-sm">
-      <div class="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
-       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
-      </div>
-      <div>
-       <p class="font-medium text-sm">ผู้ดูแลระบบ</p>
-       <p class="text-xs text-blue-200">Admin</p>
-      </div>
-     </div>
-    </div>
    </aside>
    
    <!-- Main Content -->
    <main class="flex-1 overflow-y-auto w-full">
-    <!-- Mobile Header -->
     <div class="md:hidden bg-blue-900 text-white p-4 flex justify-between items-center sticky top-0 z-40 shadow-md">
         <span class="font-bold">ระบบจัดเก็บคำสั่ง</span>
         <button onclick="document.getElementById('sidebar').classList.toggle('hidden'); document.getElementById('sidebar').classList.toggle('absolute'); document.getElementById('sidebar').classList.toggle('z-50'); document.getElementById('sidebar').classList.toggle('h-full');" class="p-1">
@@ -85,289 +73,191 @@
 
     <!-- Dashboard Page -->
     <div id="page-dashboard" class="page p-6">
-     <div class="mb-6">
-      <h2 class="text-2xl font-bold text-gray-800">แดชบอร์ด</h2>
-      <p class="text-gray-500">ภาพรวมข้อมูลคำสั่งและงานไปราชการ</p>
-     </div>
+     <div class="mb-6"><h2 class="text-2xl font-bold text-gray-800">แดชบอร์ด</h2></div>
      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
       <div class="card-stat bg-white rounded-xl shadow-md p-6 border-l-4 border-blue-500">
-       <div class="flex items-center justify-between">
-        <div><p class="text-gray-500 text-sm mb-1">คำสั่งทั้งหมด</p><p id="stat-orders" class="text-3xl font-bold text-gray-800">0</p></div>
-        <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center"><svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg></div>
-       </div>
+       <div><p class="text-gray-500 text-sm mb-1">คำสั่งทั้งหมด</p><p id="stat-orders" class="text-3xl font-bold text-gray-800">0</p></div>
       </div>
       <div class="card-stat bg-white rounded-xl shadow-md p-6 border-l-4 border-green-500">
-       <div class="flex items-center justify-between">
-        <div><p class="text-gray-500 text-sm mb-1">งานไปราชการ</p><p id="stat-travels" class="text-3xl font-bold text-gray-800">0</p></div>
-        <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center"><svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /></svg></div>
-       </div>
-      </div>
-      <!-- Stats Month -->
-      <div class="card-stat bg-white rounded-xl shadow-md p-6 border-l-4 border-yellow-500">
-       <div class="flex items-center justify-between">
-        <div><p class="text-gray-500 text-sm mb-1">คำสั่งเดือนนี้</p><p id="stat-orders-month" class="text-3xl font-bold text-gray-800">0</p></div>
-        <div class="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center"><svg class="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg></div>
-       </div>
-      </div>
-      <div class="card-stat bg-white rounded-xl shadow-md p-6 border-l-4 border-purple-500">
-       <div class="flex items-center justify-between">
-        <div><p class="text-gray-500 text-sm mb-1">ไปราชการเดือนนี้</p><p id="stat-travels-month" class="text-3xl font-bold text-gray-800">0</p></div>
-        <div class="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center"><svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></div>
-       </div>
+       <div><p class="text-gray-500 text-sm mb-1">งานไปราชการ</p><p id="stat-travels" class="text-3xl font-bold text-gray-800">0</p></div>
       </div>
      </div>
-     
-     <!-- Recent Items -->
      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <div class="bg-white rounded-xl shadow-md overflow-hidden h-full">
-       <div class="bg-blue-50 px-6 py-4 border-b"><h3 class="font-semibold text-gray-800">คำสั่งล่าสุด</h3></div>
-       <div id="recent-orders" class="divide-y max-h-80 overflow-y-auto"></div>
-      </div>
-      <div class="bg-white rounded-xl shadow-md overflow-hidden h-full">
-       <div class="bg-green-50 px-6 py-4 border-b"><h3 class="font-semibold text-gray-800">งานไปราชการล่าสุด</h3></div>
-       <div id="recent-travels" class="divide-y max-h-80 overflow-y-auto"></div>
-      </div>
+      <div class="bg-white rounded-xl shadow-md p-4"><h3 class="font-semibold mb-4">คำสั่งล่าสุด</h3><div id="recent-orders" class="divide-y max-h-80 overflow-y-auto"></div></div>
+      <div class="bg-white rounded-xl shadow-md p-4"><h3 class="font-semibold mb-4">งานไปราชการล่าสุด</h3><div id="recent-travels" class="divide-y max-h-80 overflow-y-auto"></div></div>
      </div>
     </div>
 
     <!-- Orders Page -->
     <div id="page-orders" class="page hidden p-6">
-     <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
-      <div><h2 class="text-2xl font-bold text-gray-800">คำสั่งกลุ่มงาน</h2></div>
-      <button onclick="showPage('add'); setAddTab('order')" class="btn-primary bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 shadow-md">
-       <svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg> เพิ่มคำสั่งใหม่ </button>
+     <div class="flex justify-between mb-6">
+      <h2 class="text-2xl font-bold text-gray-800">คำสั่งกลุ่มงาน</h2>
+      <button onclick="showPage('add'); setAddTab('order')" class="btn-primary bg-blue-600 text-white px-4 py-2 rounded-lg">เพิ่มคำสั่งใหม่</button>
      </div>
-     <div class="bg-white rounded-xl shadow-md overflow-hidden">
-      <div class="p-4 border-b bg-gray-50 flex flex-col md:flex-row gap-4">
-        <input type="text" id="search-orders" placeholder="ค้นหาเลขที่คำสั่ง, เรื่อง..." class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" oninput="filterOrders()">
-        <select id="filter-order-type" class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" onchange="filterOrders()"> <option value="">ประเภททั้งหมด</option> <option value="แต่งตั้ง">แต่งตั้ง</option> <option value="ย้าย">ย้าย</option> <option value="เลื่อนขั้น">เลื่อนขั้น</option> <option value="ลาศึกษา">ลาศึกษา</option> <option value="อื่นๆ">อื่นๆ</option> </select>
-      </div>
-      <div class="overflow-x-auto">
-       <table class="w-full">
-        <thead class="bg-gray-50"><tr><th class="px-4 py-3 text-left font-semibold text-gray-600">เลขที่คำสั่ง</th><th class="px-4 py-3 text-left font-semibold text-gray-600">เรื่อง</th><th class="px-4 py-3 text-left font-semibold text-gray-600">วันที่</th><th class="px-4 py-3 font-semibold text-gray-600">ประเภท</th><th class="px-4 py-3 text-center font-semibold text-gray-600">จัดการ</th></tr></thead>
-        <tbody id="orders-table-body" class="divide-y"></tbody>
-       </table>
-      </div>
+     <div class="bg-white rounded-xl shadow-md p-4">
+        <input type="text" id="search-orders" placeholder="ค้นหา..." class="w-full px-4 py-2 border rounded-lg mb-4" oninput="filterOrders()">
+        <div class="overflow-x-auto"><table class="w-full"><tbody id="orders-table-body" class="divide-y"></tbody></table></div>
      </div>
     </div>
 
     <!-- Travels Page -->
     <div id="page-travels" class="page hidden p-6">
-     <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
-      <div><h2 class="text-2xl font-bold text-gray-800">งานไปราชการ</h2></div>
-      <button onclick="showPage('add'); setAddTab('travel')" class="btn-primary bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 shadow-md">
-       <svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg> เพิ่มงานไปราชการ </button>
+     <div class="flex justify-between mb-6">
+      <h2 class="text-2xl font-bold text-gray-800">งานไปราชการ</h2>
+      <button onclick="showPage('add'); setAddTab('travel')" class="btn-primary bg-green-600 text-white px-4 py-2 rounded-lg">เพิ่มงานไปราชการ</button>
      </div>
-     <div class="bg-white rounded-xl shadow-md overflow-hidden">
-      <div class="p-4 border-b bg-gray-50"><input type="text" id="search-travels" placeholder="ค้นหาชื่อ, สถานที่..." class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" oninput="filterTravels()"></div>
-      <div class="overflow-x-auto">
-       <table class="w-full">
-        <thead class="bg-gray-50"><tr><th class="px-4 py-3 text-left font-semibold text-gray-600">คำสั่งที่</th><th class="px-4 py-3 text-left font-semibold text-gray-600">ผู้ไปราชการ</th><th class="px-4 py-3 text-left font-semibold text-gray-600">สถานที่</th><th class="px-4 py-3 font-semibold text-gray-600">วันที่</th><th class="px-4 py-3 text-center font-semibold text-gray-600">จัดการ</th></tr></thead>
-        <tbody id="travels-table-body" class="divide-y"></tbody>
-       </table>
-      </div>
+     <div class="bg-white rounded-xl shadow-md p-4">
+        <input type="text" id="search-travels" placeholder="ค้นหา..." class="w-full px-4 py-2 border rounded-lg mb-4" oninput="filterTravels()">
+        <div class="overflow-x-auto"><table class="w-full"><tbody id="travels-table-body" class="divide-y"></tbody></table></div>
      </div>
     </div>
 
     <!-- Add Data Page -->
     <div id="page-add" class="page hidden p-6">
-     <div class="mb-6"><h2 class="text-2xl font-bold text-gray-800">เพิ่มข้อมูล</h2><p class="text-gray-500">บันทึกข้อมูลคำสั่งหรือการไปราชการ</p></div>
-     <div class="bg-white rounded-xl shadow-md overflow-hidden">
-      <div class="flex border-b">
-        <button id="tab-order" onclick="setAddTab('order')" class="flex-1 px-6 py-4 font-medium border-b-2 border-blue-600 text-blue-600 bg-blue-50 transition-colors">เพิ่มคำสั่ง</button>
-        <button id="tab-travel" onclick="setAddTab('travel')" class="flex-1 px-6 py-4 font-medium text-gray-500 hover:bg-gray-50 transition-colors">เพิ่มงานไปราชการ</button>
+     <div class="bg-white rounded-xl shadow-md p-6">
+      <div class="flex border-b mb-6">
+        <button id="tab-order" onclick="setAddTab('order')" class="flex-1 px-6 py-4 font-bold border-b-2 border-blue-600 text-blue-600">เพิ่มคำสั่ง</button>
+        <button id="tab-travel" onclick="setAddTab('travel')" class="flex-1 px-6 py-4 text-gray-500">เพิ่มงานไปราชการ</button>
       </div>
       
-      <!-- Order Form -->
-      <form id="form-order" class="p-6 space-y-6" onsubmit="handleOrderSubmit(event)">
-       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div><label class="block text-sm font-medium mb-1 text-gray-700">เลขที่คำสั่ง <span class="text-red-500">*</span></label><input type="text" id="order-number" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="เช่น 123/2567"></div>
-        <div><label class="block text-sm font-medium mb-1 text-gray-700">วันที่ออกคำสั่ง <span class="text-red-500">*</span></label><input type="date" id="order-date" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"></div>
-       </div>
-       <div><label class="block text-sm font-medium mb-1 text-gray-700">เรื่องคำสั่ง <span class="text-red-500">*</span></label><input type="text" id="order-subject" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="ระบุเรื่อง..."></div>
-       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div><label class="block text-sm font-medium mb-1 text-gray-700">ประเภท</label><select id="order-type" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"><option value="แต่งตั้ง">แต่งตั้ง</option><option value="ย้าย">ย้าย</option><option value="เลื่อนขั้น">เลื่อนขั้น</option><option value="อื่นๆ">อื่นๆ</option></select></div>
-        <div><label class="block text-sm font-medium mb-1 text-gray-700">หน่วยงานเจ้าของเรื่อง</label><input type="text" id="order-agency" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="เช่น กองการเจ้าหน้าที่"></div>
-       </div>
-       <div><label class="block text-sm font-medium mb-1 text-gray-700">ไฟล์แนบ (PDF)</label><input type="file" id="order-file" accept="application/pdf" class="w-full px-4 py-2 border rounded-lg bg-gray-50 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"></div>
-       
-       <div class="flex justify-end pt-4 border-t gap-3">
-           <button type="button" onclick="document.getElementById('form-order').reset()" class="px-4 py-2 border rounded-lg text-gray-600 hover:bg-gray-50">ล้างฟอร์ม</button>
-           <button type="submit" class="btn-primary bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg shadow">บันทึกคำสั่ง</button>
-       </div>
+      <form id="form-order" class="space-y-4" onsubmit="handleOrderSubmit(event)">
+       <input type="text" id="order-number" required class="w-full p-2 border rounded" placeholder="เลขที่คำสั่ง *">
+       <input type="date" id="order-date" required class="w-full p-2 border rounded">
+       <input type="text" id="order-subject" required class="w-full p-2 border rounded" placeholder="เรื่อง *">
+       <select id="order-type" class="w-full p-2 border rounded"><option value="แต่งตั้ง">แต่งตั้ง</option><option value="ย้าย">ย้าย</option><option value="เลื่อนขั้น">เลื่อนขั้น</option><option value="อื่นๆ">อื่นๆ</option></select>
+       <input type="text" id="order-agency" class="w-full p-2 border rounded" placeholder="หน่วยงาน">
+       <div class="border p-2 rounded bg-gray-50"><label class="text-sm">ไฟล์แนบ (PDF)</label><input type="file" id="order-file" accept="application/pdf" class="w-full mt-1"></div>
+       <button type="submit" class="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700">บันทึก</button>
       </form>
 
-      <!-- Travel Form -->
-      <form id="form-travel" class="p-6 space-y-6 hidden" onsubmit="handleTravelSubmit(event)">
-       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div><label class="block text-sm font-medium mb-1 text-gray-700">เลขที่คำสั่ง <span class="text-red-500">*</span></label><input type="text" id="travel-order-number" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"></div>
-        <div><label class="block text-sm font-medium mb-1 text-gray-700">ชื่อผู้ไปราชการ <span class="text-red-500">*</span></label><input type="text" id="travel-name" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"></div>
+      <form id="form-travel" class="space-y-4 hidden" onsubmit="handleTravelSubmit(event)">
+       <input type="text" id="travel-order-number" required class="w-full p-2 border rounded" placeholder="เลขที่คำสั่ง *">
+       <input type="text" id="travel-name" required class="w-full p-2 border rounded" placeholder="ชื่อผู้ไปราชการ *">
+       <input type="text" id="travel-destination" required class="w-full p-2 border rounded" placeholder="สถานที่ *">
+       <div class="flex gap-2">
+           <input type="date" id="travel-start" required class="w-full p-2 border rounded" placeholder="เริ่ม">
+           <input type="date" id="travel-end" required class="w-full p-2 border rounded" placeholder="ถึง">
        </div>
-       <div><label class="block text-sm font-medium mb-1 text-gray-700">สถานที่ <span class="text-red-500">*</span></label><input type="text" id="travel-destination" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"></div>
-       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div><label class="block text-sm font-medium mb-1 text-gray-700">เริ่มวันที่ <span class="text-red-500">*</span></label><input type="date" id="travel-start" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"></div>
-        <div><label class="block text-sm font-medium mb-1 text-gray-700">ถึงวันที่ <span class="text-red-500">*</span></label><input type="date" id="travel-end" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"></div>
-       </div>
-       <div><label class="block text-sm font-medium mb-1 text-gray-700">วัตถุประสงค์</label><textarea id="travel-purpose" rows="2" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"></textarea></div>
-       <div><label class="block text-sm font-medium mb-1 text-gray-700">เอกสารแนบ (PDF)</label><input type="file" id="travel-file" accept="application/pdf" class="w-full px-4 py-2 border rounded-lg bg-gray-50 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100"></div>
-       
-       <div class="flex justify-end pt-4 border-t gap-3">
-           <button type="button" onclick="document.getElementById('form-travel').reset()" class="px-4 py-2 border rounded-lg text-gray-600 hover:bg-gray-50">ล้างฟอร์ม</button>
-           <button type="submit" class="btn-primary bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg shadow">บันทึกงานไปราชการ</button>
-       </div>
+       <textarea id="travel-purpose" class="w-full p-2 border rounded" placeholder="วัตถุประสงค์"></textarea>
+       <div class="border p-2 rounded bg-gray-50"><label class="text-sm">ไฟล์แนบ (PDF)</label><input type="file" id="travel-file" accept="application/pdf" class="w-full mt-1"></div>
+       <button type="submit" class="w-full bg-green-600 text-white p-2 rounded hover:bg-green-700">บันทึก</button>
       </form>
      </div>
     </div>
 
     <!-- Search Page -->
     <div id="page-search" class="page hidden p-6">
-        <div class="mb-6"><h2 class="text-2xl font-bold text-gray-800">ค้นหา / รายงาน</h2></div>
-        <div class="bg-white rounded-xl shadow-md p-6 mb-6">
-         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <select id="search-type" class="border p-2 rounded-lg focus:ring-2 focus:ring-blue-500" onchange="performSearch()"><option value="all">ทั้งหมด</option><option value="order">คำสั่ง</option><option value="travel">งานไปราชการ</option></select>
-          <input type="text" id="search-keyword" placeholder="คำค้นหา..." class="border p-2 rounded-lg focus:ring-2 focus:ring-blue-500 col-span-2" oninput="performSearch()">
-         </div>
-        </div>
-        <div class="bg-white rounded-xl shadow-md overflow-hidden">
-         <div class="bg-gray-50 px-6 py-4 border-b flex justify-between"><span class="font-semibold text-gray-700">ผลการค้นหา</span> <span id="search-count" class="text-sm text-gray-500">0 รายการ</span></div>
-         <div id="search-results" class="divide-y max-h-96 overflow-y-auto"></div>
+        <div class="bg-white rounded-xl shadow-md p-6">
+          <input type="text" id="search-keyword" placeholder="พิมพ์คำค้นหา..." class="w-full p-2 border rounded mb-4" oninput="performSearch()">
+          <div id="search-results" class="divide-y max-h-96 overflow-y-auto"></div>
         </div>
     </div>
 
    </main>
   </div>
 
-  <!-- View Modal -->
-  <div id="view-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 p-4 transition-opacity duration-300">
-   <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full p-6 relative transform transition-transform duration-300 scale-100">
-    <div class="flex justify-between items-center border-b pb-4 mb-4">
-        <h3 id="modal-title" class="text-xl font-bold text-gray-800">รายละเอียด</h3>
-        <button onclick="document.getElementById('view-modal').classList.add('hidden'); document.getElementById('view-modal').classList.remove('flex');" class="text-gray-400 hover:text-gray-600">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
-        </button>
-    </div>
-    <div id="modal-content" class="space-y-4 text-gray-700"></div>
+  <!-- View/Delete Modals (Hidden) -->
+  <div id="view-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 p-4">
+   <div class="bg-white rounded-lg max-w-lg w-full p-6 relative">
+    <button onclick="document.getElementById('view-modal').classList.add('hidden'); document.getElementById('view-modal').classList.remove('flex')" class="absolute top-2 right-2 text-xl">×</button>
+    <div id="modal-content"></div>
    </div>
   </div>
 
-  <!-- Delete Modal -->
   <div id="delete-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50 p-4">
-    <div class="bg-white rounded-xl shadow-2xl max-w-sm w-full p-6 text-center">
-        <div class="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-        </div>
-        <h3 class="text-xl font-bold text-gray-800 mb-2">ยืนยันการลบ</h3>
-        <p class="text-gray-500 mb-6">คุณต้องการลบข้อมูลนี้ใช่หรือไม่?</p>
-        <div class="flex gap-4 justify-center">
-            <button onclick="document.getElementById('delete-modal').classList.add('hidden'); document.getElementById('delete-modal').classList.remove('flex');" class="flex-1 px-4 py-2 border rounded-lg hover:bg-gray-50">ยกเลิก</button>
-            <button id="btn-confirm-delete" onclick="confirmDelete()" class="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg">ลบข้อมูล</button>
-        </div>
+    <div class="bg-white rounded-lg p-6 text-center">
+        <p class="mb-4 text-lg">ยืนยันการลบ?</p>
+        <button onclick="document.getElementById('delete-modal').classList.remove('flex'); document.getElementById('delete-modal').classList.add('hidden')" class="border px-4 py-2 rounded mr-2">ยกเลิก</button>
+        <button id="btn-confirm-delete" onclick="confirmDelete()" class="bg-red-600 text-white px-4 py-2 rounded">ลบ</button>
     </div>
   </div>
 
   <script>
-    // ***********************************************
-    // URL ที่ทดสอบแล้วว่าใช้งานได้จริง (ไม่ต้องแก้)
-    // ***********************************************
-    const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbzQEL_IH0JP6oCVB76RjldKmajOS92oXb1s8UCXYvvGZLWig83CPYre5IVBaiXan83A/exec'; 
+    // --- ระบบดักจับ Error (Safety Mode) ---
+    window.onerror = function(msg, url, line) {
+        const errorMsg = "⚠️ เกิดข้อผิดพลาดในโค้ด (JS Error): " + msg + " (บรรทัด: " + line + ")";
+        console.error(errorMsg);
+        const debugEl = document.getElementById('error-debug');
+        if(debugEl) {
+            debugEl.innerText = errorMsg;
+            debugEl.classList.remove('hidden');
+        }
+        // ถ้าเกิด Error ให้ซ่อน Loading ทันที เพื่อให้คุณเห็นหน้าจอ
+        document.getElementById('loading-overlay').style.display = 'none';
+        return false;
+    };
 
+    const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbzQEL_IH0JP6oCVB76RjldKmajOS92oXb1s8UCXYvvGZLWig83CPYre5IVBaiXan83A/exec'; 
     let allData = [];
     let editTarget = null;
     let deleteTargetId = null;
 
     async function init() {
-        showLoading(true, 'กำลังโหลดข้อมูลจาก Google...');
         try {
+            // โหลดข้อมูล
             const response = await fetch(`${GAS_API_URL}?action=read`);
-            if (!response.ok) throw new Error('Connect Error');
-            
+            if (!response.ok) throw new Error('Network response was not ok');
             const json = await response.json();
             
             if(json.status === 'error') throw new Error(json.message);
-
+            
             allData = Array.isArray(json) ? json : (json.data || []);
             
+            // อัปเดตหน้าจอ
             updateDashboard();
             updateOrdersTable();
             updateTravelsTable();
             
+            // ซ่อน Loading เมื่อเสร็จสมบูรณ์
+            document.getElementById('loading-overlay').style.display = 'none';
+
         } catch (error) {
-            console.error(error);
-            // ถ้า Error รอบนี้ อาจจะเป็นที่ Net หลุดจริงๆ เพราะ Server ฝั่ง Google ปกติแล้ว
-            alert('ไม่สามารถโหลดข้อมูลได้ กรุณารีเฟรชหน้าเว็บ');
-        } finally {
-            showLoading(false);
+            console.error('Init Error:', error);
+            document.getElementById('loading-text').innerText = "โหลดไม่สำเร็จ: " + error.message;
+            document.getElementById('loading-text').classList.remove('text-blue-800');
+            document.getElementById('loading-text').classList.add('text-red-600');
+            // ไม่ซ่อน Loading เพื่อให้เห็น Error message (แต่กดปุ่มปิดได้)
         }
     }
 
-    // --- Loading UI ---
-    function showLoading(show, text = 'กำลังโหลด...') {
-        const overlay = document.getElementById('loading-overlay');
-        const txt = document.getElementById('loading-text');
-        if(show) {
-            txt.innerText = text;
-            overlay.classList.remove('hidden');
-            overlay.classList.add('flex');
-        } else {
-            overlay.classList.add('hidden');
-            overlay.classList.remove('flex');
+    // --- Core Functions ---
+    async function submitData(payload) {
+        document.getElementById('loading-overlay').style.display = 'flex';
+        document.getElementById('loading-text').innerText = "กำลังบันทึก...";
+        try {
+            const isUpdate = !!editTarget;
+            payload.__backendId = isUpdate ? editTarget : undefined;
+            const action = isUpdate ? 'update' : 'create';
+            
+            await fetch(GAS_API_URL, {
+                method: 'POST',
+                body: JSON.stringify({ action, payload })
+            });
+            
+            alert('บันทึกสำเร็จ');
+            window.location.reload(); // รีโหลดง่ายที่สุดเพื่อเคลียร์ค่า
+        } catch (e) {
+            alert('Error: ' + e.message);
+            document.getElementById('loading-overlay').style.display = 'none';
         }
     }
 
-    const fileToBase64 = file => new Promise((resolve, reject) => {
+    // --- Helpers & UI ---
+    const fileToBase64 = file => new Promise((resolve,reject) => {
         const reader = new FileReader();
         reader.readAsDataURL(file);
         reader.onload = () => resolve(reader.result);
-        reader.onerror = error => reject(error);
+        reader.onerror = reject;
     });
-
-    async function submitData(payload) {
-        showLoading(true, 'กำลังบันทึกข้อมูลและอัปโหลดไฟล์...');
-        try {
-            const isUpdate = !!editTarget;
-            const action = isUpdate ? 'update' : 'create';
-            if (isUpdate) payload.__backendId = editTarget;
-
-            // ใช้ no-cors จะอ่าน response ไม่ได้ แต่ข้อมูลจะเข้า
-            // แต่เนื่องจากเราแก้ฝั่ง GAS แล้ว น่าจะอ่าน response ได้ปกติ
-            const response = await fetch(GAS_API_URL, {
-                method: 'POST',
-                body: JSON.stringify({ action: action, payload: payload })
-            });
-            
-            const result = await response.json();
-            
-            if(result.status === 'success') {
-                alert('✅ บันทึกข้อมูลสำเร็จ');
-                await init(); // โหลดข้อมูลใหม่
-                showPage('dashboard');
-                document.getElementById('form-order').reset();
-                document.getElementById('form-travel').reset();
-                editTarget = null;
-            } else {
-                alert('❌ เกิดข้อผิดพลาด: ' + (result.message || 'Unknown Error'));
-            }
-        } catch (e) {
-            console.error(e);
-            alert('เกิดข้อผิดพลาดในการเชื่อมต่อ (Network Error)');
-        } finally {
-            showLoading(false);
-        }
-    }
 
     async function handleOrderSubmit(e) {
         e.preventDefault();
-        const fileInput = document.getElementById('order-file');
-        let fileBase64 = null, fileType = null, fileName = null;
-
-        if (fileInput.files.length > 0) {
-            const file = fileInput.files[0];
-            if(file.size > 5 * 1024 * 1024) { alert('ไฟล์ใหญ่เกิน 5MB กรุณาลดขนาดไฟล์'); return; }
-            fileBase64 = await fileToBase64(file);
-            fileType = file.type;
-            fileName = file.name;
+        const file = document.getElementById('order-file').files[0];
+        let fileData = {};
+        if(file) {
+            if(file.size > 5*1024*1024) return alert('ไฟล์ใหญ่เกิน 5MB');
+            fileData = { file_base64: await fileToBase64(file), file_name: file.name, file_type: file.type };
         }
-
         submitData({
             type: 'order',
             order_number: document.getElementById('order-number').value,
@@ -375,23 +265,18 @@
             issue_date: document.getElementById('order-date').value,
             order_type: document.getElementById('order-type').value,
             issuing_agency: document.getElementById('order-agency').value,
-            file_base64: fileBase64, file_type: fileType, file_name: fileName
+            ...fileData
         });
     }
 
     async function handleTravelSubmit(e) {
         e.preventDefault();
-        const fileInput = document.getElementById('travel-file');
-        let fileBase64 = null, fileType = null, fileName = null;
-
-        if (fileInput.files.length > 0) {
-            const file = fileInput.files[0];
-            if(file.size > 5 * 1024 * 1024) { alert('ไฟล์ใหญ่เกิน 5MB กรุณาลดขนาดไฟล์'); return; }
-            fileBase64 = await fileToBase64(file);
-            fileType = file.type;
-            fileName = file.name;
+        const file = document.getElementById('travel-file').files[0];
+        let fileData = {};
+        if(file) {
+            if(file.size > 5*1024*1024) return alert('ไฟล์ใหญ่เกิน 5MB');
+            fileData = { file_base64: await fileToBase64(file), file_name: file.name, file_type: file.type };
         }
-
         submitData({
             type: 'travel',
             order_number: document.getElementById('travel-order-number').value,
@@ -400,242 +285,88 @@
             start_date: document.getElementById('travel-start').value,
             end_date: document.getElementById('travel-end').value,
             purpose: document.getElementById('travel-purpose').value,
-            file_base64: fileBase64, file_type: fileType, file_name: fileName
+            ...fileData
         });
-    }
-
-    // --- UI Logic ---
-    function deleteOrder(id) { deleteTargetId = id; openDeleteModal(); }
-    function deleteTravel(id) { deleteTargetId = id; openDeleteModal(); }
-    function openDeleteModal() { document.getElementById('delete-modal').classList.remove('hidden'); document.getElementById('delete-modal').classList.add('flex'); }
-
-    async function confirmDelete() {
-        if (!deleteTargetId) return;
-        showLoading(true, 'กำลังลบข้อมูล...');
-        try {
-            await fetch(GAS_API_URL, {
-                method: 'POST',
-                body: JSON.stringify({ action: 'delete', id: deleteTargetId })
-            });
-            document.getElementById('delete-modal').classList.add('hidden');
-            document.getElementById('delete-modal').classList.remove('flex');
-            await init();
-        } catch (e) { alert('ลบข้อมูลไม่สำเร็จ'); } 
-        finally { showLoading(false); }
-    }
-
-    function editOrder(id) {
-        const data = allData.find(d => d.__backendId == id);
-        if(!data) return;
-        editTarget = id;
-        showPage('add');
-        setAddTab('order');
-        document.getElementById('order-number').value = data.order_number;
-        document.getElementById('order-subject').value = data.subject;
-        document.getElementById('order-date').value = formatDateForInput(data.issue_date);
-        document.getElementById('order-type').value = data.order_type;
-        document.getElementById('order-agency').value = data.issuing_agency;
-    }
-
-    function editTravel(id) {
-        const data = allData.find(d => d.__backendId == id);
-        if(!data) return;
-        editTarget = id;
-        showPage('add');
-        setAddTab('travel');
-        document.getElementById('travel-order-number').value = data.order_number;
-        document.getElementById('travel-name').value = data.traveler_name;
-        document.getElementById('travel-destination').value = data.destination;
-        document.getElementById('travel-start').value = formatDateForInput(data.start_date);
-        document.getElementById('travel-end').value = formatDateForInput(data.end_date);
-        document.getElementById('travel-purpose').value = data.purpose;
-    }
-
-    function showPage(page) {
-        document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
-        document.getElementById(`page-${page}`).classList.remove('hidden');
-        document.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('active'));
-        const activeBtn = document.querySelector(`[data-page="${page}"]`);
-        if(activeBtn) activeBtn.classList.add('active');
-    }
-
-    function setAddTab(tab) {
-        const formOrder = document.getElementById('form-order');
-        const formTravel = document.getElementById('form-travel');
-        const tabOrder = document.getElementById('tab-order');
-        const tabTravel = document.getElementById('tab-travel');
-
-        if(tab === 'order') {
-            formOrder.classList.remove('hidden'); formTravel.classList.add('hidden');
-            tabOrder.classList.add('border-blue-600', 'text-blue-600', 'bg-blue-50');
-            tabOrder.classList.remove('text-gray-500', 'hover:bg-gray-50');
-            tabTravel.classList.remove('border-green-600', 'text-green-600', 'bg-green-50');
-            tabTravel.classList.add('text-gray-500', 'hover:bg-gray-50');
-        } else {
-            formTravel.classList.remove('hidden'); formOrder.classList.add('hidden');
-            tabTravel.classList.add('border-green-600', 'text-green-600', 'bg-green-50');
-            tabTravel.classList.remove('text-gray-500', 'hover:bg-gray-50');
-            tabOrder.classList.remove('border-blue-600', 'text-blue-600', 'bg-blue-50');
-            tabOrder.classList.add('text-gray-500', 'hover:bg-gray-50');
-        }
-    }
-
-    function formatDate(dateStr) {
-        if (!dateStr) return '-';
-        const d = new Date(dateStr);
-        if (isNaN(d.getTime())) return '-';
-        return d.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' });
-    }
-    
-    function formatDateForInput(dateStr) {
-        if(!dateStr) return '';
-        const d = new Date(dateStr);
-        if (isNaN(d.getTime())) return '';
-        const offset = d.getTimezoneOffset() * 60000;
-        return new Date(d.getTime() - offset).toISOString().split('T')[0];
-    }
-
-    function viewOrder(id) {
-        const d = allData.find(x => x.__backendId == id);
-        if(!d) return;
-        const fileHtml = d.file_url ? `<a href="${d.file_url}" target="_blank" class="inline-flex items-center gap-2 px-3 py-1 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg> เปิดไฟล์แนบ</a>` : '<span class="text-gray-400">ไม่มีไฟล์</span>';
-        
-        document.getElementById('modal-content').innerHTML = `
-            <div class="grid grid-cols-3 gap-4">
-                <div class="text-gray-500">เลขที่คำสั่ง</div>
-                <div class="col-span-2 font-medium">${d.order_number}</div>
-                
-                <div class="text-gray-500">เรื่อง</div>
-                <div class="col-span-2 font-medium">${d.subject}</div>
-                
-                <div class="text-gray-500">วันที่</div>
-                <div class="col-span-2">${formatDate(d.issue_date)}</div>
-                
-                <div class="text-gray-500">ประเภท</div>
-                <div class="col-span-2"><span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">${d.order_type}</span></div>
-
-                <div class="text-gray-500">ไฟล์แนบ</div>
-                <div class="col-span-2">${fileHtml}</div>
-            </div>
-        `;
-        document.getElementById('view-modal').classList.remove('hidden');
-        document.getElementById('view-modal').classList.add('flex');
-    }
-
-    function viewTravel(id) {
-        const d = allData.find(x => x.__backendId == id);
-        if(!d) return;
-        const fileHtml = d.file_url ? `<a href="${d.file_url}" target="_blank" class="inline-flex items-center gap-2 px-3 py-1 bg-green-50 text-green-700 rounded-lg hover:bg-green-100"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg> เปิดไฟล์แนบ</a>` : '<span class="text-gray-400">ไม่มีไฟล์</span>';
-        
-        document.getElementById('modal-content').innerHTML = `
-            <div class="grid grid-cols-3 gap-4">
-                <div class="text-gray-500">ผู้ไปราชการ</div>
-                <div class="col-span-2 font-medium">${d.traveler_name}</div>
-                
-                <div class="text-gray-500">สถานที่</div>
-                <div class="col-span-2 font-medium">${d.destination}</div>
-                
-                <div class="text-gray-500">ช่วงเวลา</div>
-                <div class="col-span-2">${formatDate(d.start_date)} - ${formatDate(d.end_date)}</div>
-                
-                <div class="text-gray-500">วัตถุประสงค์</div>
-                <div class="col-span-2 text-sm">${d.purpose}</div>
-
-                <div class="text-gray-500">ไฟล์แนบ</div>
-                <div class="col-span-2">${fileHtml}</div>
-            </div>
-        `;
-        document.getElementById('view-modal').classList.remove('hidden');
-        document.getElementById('view-modal').classList.add('flex');
     }
 
     function updateDashboard() {
         document.getElementById('stat-orders').innerText = allData.filter(x=>x.type=='order').length;
         document.getElementById('stat-travels').innerText = allData.filter(x=>x.type=='travel').length;
         
-        const now = new Date();
-        const thisMonth = now.getMonth();
-        const thisYear = now.getFullYear();
+        const recentO = allData.filter(x=>x.type=='order').slice(-5).reverse();
+        document.getElementById('recent-orders').innerHTML = recentO.map(x=>`<div class="p-2 border-b cursor-pointer hover:bg-gray-50" onclick="viewItem('${x.__backendId}')">${x.order_number} ${x.subject}</div>`).join('') || '<div class="p-4 text-center text-gray-400">ว่าง</div>';
         
-        const ordersMonth = allData.filter(x => x.type=='order' && new Date(x.issue_date).getMonth() === thisMonth && new Date(x.issue_date).getFullYear() === thisYear).length;
-        const travelsMonth = allData.filter(x => x.type=='travel' && new Date(x.start_date).getMonth() === thisMonth && new Date(x.start_date).getFullYear() === thisYear).length;
-
-        document.getElementById('stat-orders-month').innerText = ordersMonth;
-        document.getElementById('stat-travels-month').innerText = travelsMonth;
-
-        const orders = allData.filter(x=>x.type=='order').slice(-5).reverse();
-        document.getElementById('recent-orders').innerHTML = orders.map(o => `
-            <div class="p-4 hover:bg-gray-50 cursor-pointer flex justify-between items-center" onclick="viewOrder('${o.__backendId}')">
-                <div>
-                    <div class="font-medium text-gray-800">${o.order_number}</div>
-                    <div class="text-sm text-gray-500 truncate w-48">${o.subject}</div>
-                </div>
-                <span class="text-xs text-gray-400">${formatDate(o.issue_date)}</span>
-            </div>`).join('') || '<div class="p-6 text-center text-gray-400">ยังไม่มีข้อมูล</div>';
-        
-        const travels = allData.filter(x=>x.type=='travel').slice(-5).reverse();
-        document.getElementById('recent-travels').innerHTML = travels.map(t => `
-            <div class="p-4 hover:bg-gray-50 cursor-pointer flex justify-between items-center" onclick="viewTravel('${t.__backendId}')">
-                <div>
-                    <div class="font-medium text-gray-800">${t.traveler_name}</div>
-                    <div class="text-sm text-gray-500 truncate w-48">${t.destination}</div>
-                </div>
-                <span class="text-xs text-gray-400">${formatDate(t.start_date)}</span>
-            </div>`).join('') || '<div class="p-6 text-center text-gray-400">ยังไม่มีข้อมูล</div>';
+        const recentT = allData.filter(x=>x.type=='travel').slice(-5).reverse();
+        document.getElementById('recent-travels').innerHTML = recentT.map(x=>`<div class="p-2 border-b cursor-pointer hover:bg-gray-50" onclick="viewItem('${x.__backendId}')">${x.traveler_name} -> ${x.destination}</div>`).join('') || '<div class="p-4 text-center text-gray-400">ว่าง</div>';
     }
 
     function updateOrdersTable() {
-        const list = allData.filter(x => x.type === 'order').reverse();
-        document.getElementById('orders-table-body').innerHTML = list.length ? list.map(o => `
-            <tr class="table-row border-b transition-colors">
-                <td class="px-4 py-3 font-medium">${o.order_number}</td>
-                <td class="px-4 py-3 truncate max-w-xs text-gray-600">${o.subject}</td>
-                <td class="px-4 py-3 text-gray-500 text-sm">${formatDate(o.issue_date)}</td>
-                <td class="px-4 py-3"><span class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">${o.order_type}</span></td>
-                <td class="px-4 py-3 text-center space-x-1">
-                    <button onclick="viewOrder('${o.__backendId}')" class="p-1 text-blue-600 hover:bg-blue-50 rounded"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg></button>
-                    <button onclick="editOrder('${o.__backendId}')" class="p-1 text-yellow-600 hover:bg-yellow-50 rounded"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg></button>
-                    <button onclick="deleteOrder('${o.__backendId}')" class="p-1 text-red-600 hover:bg-red-50 rounded"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>
-                </td>
-            </tr>`).join('') : '<tr><td colspan="5" class="text-center py-12 text-gray-400"><p class="text-lg">ยังไม่มีข้อมูล</p></td></tr>';
+        const list = allData.filter(x=>x.type=='order').reverse();
+        document.getElementById('orders-table-body').innerHTML = list.map(x=>`
+            <tr class="hover:bg-gray-50 text-sm">
+                <td class="p-3">${x.order_number}</td>
+                <td class="p-3">${x.subject}</td>
+                <td class="p-3">${x.issue_date}</td>
+                <td class="p-3"><button onclick="viewItem('${x.__backendId}')" class="text-blue-600 mr-2">ดู</button><button onclick="deleteItem('${x.__backendId}')" class="text-red-600">ลบ</button></td>
+            </tr>`).join('') || '<tr><td colspan="4" class="text-center p-4">ไม่มีข้อมูล</td></tr>';
     }
 
     function updateTravelsTable() {
-        const list = allData.filter(x => x.type === 'travel').reverse();
-        document.getElementById('travels-table-body').innerHTML = list.length ? list.map(t => `
-            <tr class="table-row border-b transition-colors">
-                <td class="px-4 py-3 font-medium">${t.order_number}</td>
-                <td class="px-4 py-3 text-gray-600">${t.traveler_name}</td>
-                <td class="px-4 py-3 truncate max-w-xs text-gray-600">${t.destination}</td>
-                <td class="px-4 py-3 text-gray-500 text-sm">${formatDate(t.start_date)}</td>
-                <td class="px-4 py-3 text-center space-x-1">
-                    <button onclick="viewTravel('${t.__backendId}')" class="p-1 text-green-600 hover:bg-green-50 rounded"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg></button>
-                    <button onclick="editTravel('${t.__backendId}')" class="p-1 text-yellow-600 hover:bg-yellow-50 rounded"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg></button>
-                    <button onclick="deleteTravel('${t.__backendId}')" class="p-1 text-red-600 hover:bg-red-50 rounded"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewbox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>
-                </td>
-            </tr>`).join('') : '<tr><td colspan="5" class="text-center py-12 text-gray-400"><p class="text-lg">ยังไม่มีข้อมูล</p></td></tr>';
-    }
-    
-    function performSearch() {
-        const keyword = document.getElementById('search-keyword').value.toLowerCase();
-        const type = document.getElementById('search-type').value;
-        const results = allData.filter(item => {
-            if(type !== 'all' && item.type !== type) return false;
-            return Object.values(item).join(' ').toLowerCase().includes(keyword);
-        });
-        document.getElementById('search-count').innerText = `${results.length} รายการ`;
-        document.getElementById('search-results').innerHTML = results.map(item => `
-            <div class="p-4 border-b hover:bg-gray-50 cursor-pointer flex items-center justify-between" onclick="${item.type==='order' ? `viewOrder('${item.__backendId}')` : `viewTravel('${item.__backendId}')`}">
-                <div>
-                    <p class="font-bold text-${item.type==='order'?'blue':'green'}-700">[${item.type==='order'?'คำสั่ง':'ไปราชการ'}] ${item.order_number}</p>
-                    <p class="text-gray-700 text-sm">${item.subject || item.traveler_name + ' ไป ' + item.destination}</p>
-                </div>
-                <div class="text-xs text-gray-400">${item.type==='order' ? formatDate(item.issue_date) : formatDate(item.start_date)}</div>
-            </div>
-        `).join('');
+        const list = allData.filter(x=>x.type=='travel').reverse();
+        document.getElementById('travels-table-body').innerHTML = list.map(x=>`
+            <tr class="hover:bg-gray-50 text-sm">
+                <td class="p-3">${x.order_number}</td>
+                <td class="p-3">${x.traveler_name}</td>
+                <td class="p-3">${x.destination}</td>
+                <td class="p-3"><button onclick="viewItem('${x.__backendId}')" class="text-green-600 mr-2">ดู</button><button onclick="deleteItem('${x.__backendId}')" class="text-red-600">ลบ</button></td>
+            </tr>`).join('') || '<tr><td colspan="4" class="text-center p-4">ไม่มีข้อมูล</td></tr>';
     }
 
-    // เริ่มทำงาน
+    function viewItem(id) {
+        const d = allData.find(x=>x.__backendId == id);
+        if(!d) return;
+        const fileLink = d.file_url ? `<a href="${d.file_url}" target="_blank" class="text-blue-600 underline block mt-2">📄 เปิดไฟล์แนบ</a>` : '';
+        const content = d.type === 'order' 
+            ? `<h3 class="font-bold text-lg">${d.order_number}</h3><p class="text-gray-600">${d.subject}</p><p>วันที่: ${d.issue_date}</p>${fileLink}`
+            : `<h3 class="font-bold text-lg">${d.traveler_name}</h3><p>ไป: ${d.destination}</p><p>วันที่: ${d.start_date} - ${d.end_date}</p>${fileLink}`;
+        
+        document.getElementById('modal-content').innerHTML = content;
+        document.getElementById('view-modal').classList.remove('hidden');
+        document.getElementById('view-modal').classList.add('flex');
+    }
+
+    function deleteItem(id) {
+        deleteTargetId = id;
+        document.getElementById('delete-modal').classList.remove('hidden');
+        document.getElementById('delete-modal').classList.add('flex');
+    }
+
+    async function confirmDelete() {
+        if(!deleteTargetId) return;
+        document.getElementById('loading-overlay').style.display = 'flex';
+        document.getElementById('loading-text').innerText = "กำลังลบ...";
+        try {
+            await fetch(GAS_API_URL, { method: 'POST', body: JSON.stringify({ action: 'delete', id: deleteTargetId }) });
+            window.location.reload();
+        } catch(e) { alert('ลบไม่สำเร็จ'); document.getElementById('loading-overlay').style.display = 'none'; }
+    }
+
+    // Navigation
+    function showPage(page) {
+        document.querySelectorAll('.page').forEach(el=>el.classList.add('hidden'));
+        document.getElementById('page-'+page).classList.remove('hidden');
+        document.querySelectorAll('.sidebar-item').forEach(el=>el.classList.remove('active'));
+        const btn = document.querySelector(`button[onclick="showPage('${page}')"]`);
+        if(btn) btn.classList.add('active');
+    }
+    function setAddTab(tab) {
+        document.getElementById('form-order').classList.toggle('hidden', tab !== 'order');
+        document.getElementById('form-travel').classList.toggle('hidden', tab !== 'travel');
+        document.getElementById('tab-order').className = tab === 'order' ? 'flex-1 px-6 py-4 font-bold border-b-2 border-blue-600 text-blue-600' : 'flex-1 px-6 py-4 text-gray-500';
+        document.getElementById('tab-travel').className = tab === 'travel' ? 'flex-1 px-6 py-4 font-bold border-b-2 border-green-600 text-green-600' : 'flex-1 px-6 py-4 text-gray-500';
+    }
+    
+    // Start App
     init();
 
   </script>
